@@ -4,18 +4,18 @@ contract owned {
     address public owner;
 
     /* Initialise contract creator as owner */
-    function owned() {
+    function owned() public {
         owner = msg.sender;
     }
 
     /* Function to dictate that only the designated owner can call a function */
 	  modifier onlyOwner {
-        if(owner != msg.sender) throw;
+        require(owner == msg.sender);
         _;
     }
 
     /* Transfer ownership of this contract to someone else */
-    function transferOwnership(address newOwner) onlyOwner() {
+    function transferOwnership(address newOwner) public onlyOwner() {
         owner = newOwner;
     }
 }
@@ -33,48 +33,66 @@ contract AsnScRegistry is owned{
     uint8 mask;
     }
 
-  struct Member {
-    IPAddress[] managedIP;
+  struct MemberAddresses {
     address contractAddress;
     address walletAddress;
+    uint index;
   }
-  mapping (uint => Member) members;
 
-  uint[] private membersAsn;
+  mapping (uint => IPAddress[]) managedIps;
+  mapping (uint => MemberAddresses) ethAddresses;
 
-  function getMemberByAsn(uint _asn) view public returns (uint128[] _ip, uint8[] _mask, address _contractAddress, address _walletAddress){
-    Member memory member = members[_asn];
-    uint128[] memory ips = new uint128[](member.managedIP.length);
-    uint8[] memory mask = new uint8[](member.mask.length);
+  uint[] private registeredAsn;
 
-    for (uint i = 0; i < member.managedIP.length; i++) {
-            ips[i] = member.managedIP[i].ip;
-            mask[i] = member.managedIP[i].mask;
+  function getManagedIpByAsn(uint _asn) view public returns (uint128[] _ip, uint8[] _mask){
+    IPAddress[] memory addresses = managedIps[_asn];
+    uint128[] memory ips = new uint128[](addresses.length);
+    uint8[] memory mask = new uint8[](addresses.length);
+
+    for (uint i = 0; i < addresses.length; i++) {
+            ips[i] = addresses[i].ip;
+            mask[i] = addresses[i].mask;
         }
-    return (ips, mask, member.contractAddress, member.contractAddress);
+    return (ips, mask);
   }
-//////
+
+  function getMemberAddressesByAsn(uint _asn) view public returns (address _contractAddress, address _walletAddress){
+    MemberAddresses memory memberAddresses = ethAddresses[_asn];
+    return (memberAddresses.contractAddress, memberAddresses.walletAddress);
+  }
+
   function addMember(uint _asn, uint128[] _ip, uint8[] _mask, address _contractAddress, address _walletAddress) public {
-    Member memory member = members[_asn];
+    MemberAddresses memory member = ethAddresses[_asn];
     //throw error if member already exist
     assert(member.contractAddress != 0);
-    IPAddress[] memory ipAddresses;
     for(uint i=0; i<_ip.length; i++){
-      IPAddress memory ipAddress = IPAddress({ip:_ip[i], mask:_mask[i]});
-      ipAddresses.push(ipAddress);
+      managedIps[_asn].push(IPAddress({ip:_ip[i], mask:_mask[i]}));
     }
+    uint idx = registeredAsn.push(_asn)-1;
+    ethAddresses[_asn] = MemberAddresses({contractAddress:_contractAddress, walletAddress:_walletAddress, index:idx});
+  }
 
-    members[_asn] = Member({managedIP:ipAddresses, contractAddress:_contractAddress,walletAddress:_walletAddress}));
-    membersAsn.push(_asn);
+  function removeMember(uint _asn) public returns (uint[] _registeredAsn){
+    //uint memory index = ethAddresses[_asn].index;
+
+    if (ethAddresses[_asn].index >= registeredAsn.length) return;
+
+    for (uint i = ethAddresses[_asn].index; i<registeredAsn.length - 1; i++){
+      registeredAsn[i] = registeredAsn[i+1];
+    }
+        registeredAsn.length--;
+        delete managedIps[_asn];
+        delete ethAddresses[_asn];
+
+        return registeredAsn;
   }
 
   function getTotalMembers() view public returns (uint _totalMembers) {
-    return (membersAsn.length);
+    return (registeredAsn.length);
   }
 
-  function getNthMember(uint _n) view public returns (uint128[] _ip, uint8[] _mask, address _contractAddress, address _walletAddress){
-    Member memory member = members[membersAsn[_n]];
-    return(member.managedIP);
+  function getRegisteredAsn() view public returns (uint[] _asn){
+    return (registeredAsn);
   }
 
 }
