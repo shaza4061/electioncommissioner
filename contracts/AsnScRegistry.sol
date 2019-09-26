@@ -38,6 +38,8 @@ contract AsnScRegistry is owned{
     address walletAddress;
     uint index;
   }
+  event EventMemberAdded(uint _asn);
+  event EventMemberRemoved(uint _asn);
 
   mapping (uint => IPAddress[]) managedIps;
   mapping (uint => MemberAddresses) ethAddresses;
@@ -64,16 +66,16 @@ contract AsnScRegistry is owned{
   function addMember(uint _asn, uint128[] _ip, uint8[] _mask, address _contractAddress, address _walletAddress) public {
     MemberAddresses memory member = ethAddresses[_asn];
     //throw error if member already exist
-    assert(member.contractAddress != 0);
+    assert(member.contractAddress == 0);
     for(uint i=0; i<_ip.length; i++){
       managedIps[_asn].push(IPAddress({ip:_ip[i], mask:_mask[i]}));
     }
     uint idx = registeredAsn.push(_asn)-1;
     ethAddresses[_asn] = MemberAddresses({contractAddress:_contractAddress, walletAddress:_walletAddress, index:idx});
+    emit EventMemberAdded(_asn);
   }
 
   function removeMember(uint _asn) public returns (uint[] _registeredAsn){
-    //uint memory index = ethAddresses[_asn].index;
 
     if (ethAddresses[_asn].index >= registeredAsn.length) return;
 
@@ -83,7 +85,7 @@ contract AsnScRegistry is owned{
         registeredAsn.length--;
         delete managedIps[_asn];
         delete ethAddresses[_asn];
-
+        emit EventMemberRemoved(_asn);
         return registeredAsn;
   }
 
