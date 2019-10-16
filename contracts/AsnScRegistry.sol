@@ -1,24 +1,8 @@
 pragma solidity ^0.4.3;
 
-contract owned {
-    address public owner;
-
-    /* Initialise contract creator as owner */
-    function owned() public {
-        owner = msg.sender;
-    }
-
-    /* Function to dictate that only the designated owner can call a function */
-	  modifier onlyOwner {
-        require(owner == msg.sender);
-        _;
-    }
-
-    /* Transfer ownership of this contract to someone else */
-    function transferOwnership(address newOwner) public onlyOwner() {
-        owner = newOwner;
-    }
-}
+import "./owned.sol";
+//library from https://github.com/Arachnid/solidity-stringutils
+import "./strings.sol";
 
 /*
  * @title AsnScRegistry
@@ -28,14 +12,16 @@ contract owned {
  *  Author: Shahrul Sharudin
  */
 contract AsnScRegistry is owned{
+  using strings for *;
+
   struct IPAddress {
-    uint128 ip;
-    uint8 mask;
+    bytes32 ip;
+    bytes32 mask;
     }
 
   struct MemberAddresses {
     address contractAddress;
-    address walletAddress;
+    address votingAddress;
     uint index;
   }
   event EventMemberAdded(uint _asn);
@@ -46,10 +32,20 @@ contract AsnScRegistry is owned{
 
   uint[] private registeredAsn;
 
-  function getManagedIpByAsn(uint _asn) view public returns (uint128[] _ip, uint8[] _mask){
+  //need constructor to accept initial member
+  constructor(uint[] _asn, bytes32[] _ip, bytes32[] _mask, address[] _contractAddress, address[] _votingAddress, uint _size) {
+    for(uint i = 0; i < _size; i++) {
+      bytes32[] memory ips = extractString(_ip[i]);
+      bytes32[] memory masks = extractString(_mask[i]);
+      addMember(_asn[i], ips, masks, _contractAddress[i], _votingAddress[i]);
+    }
+
+  }
+
+  function getManagedIpByAsn(uint _asn) view public returns (bytes32[] _ip, bytes32[] _mask){
     IPAddress[] memory addresses = managedIps[_asn];
-    uint128[] memory ips = new uint128[](addresses.length);
-    uint8[] memory mask = new uint8[](addresses.length);
+    bytes32[] memory ips = new bytes32[](addresses.length);
+    bytes32[] memory mask = new bytes32[](addresses.length);
 
     for (uint i = 0; i < addresses.length; i++) {
             ips[i] = addresses[i].ip;
@@ -58,20 +54,20 @@ contract AsnScRegistry is owned{
     return (ips, mask);
   }
 
-  function getMemberAddressesByAsn(uint _asn) view public returns (address _contractAddress, address _walletAddress){
+  function getMemberAddressesByAsn(uint _asn) view public returns (address _contractAddress, address _votingAddress){
     MemberAddresses memory memberAddresses = ethAddresses[_asn];
-    return (memberAddresses.contractAddress, memberAddresses.walletAddress);
+    return (memberAddresses.contractAddress, memberAddresses.votingAddress);
   }
 
-  function addMember(uint _asn, uint128[] _ip, uint8[] _mask, address _contractAddress, address _walletAddress) public {
+  function addMember(uint _asn, bytes32[] _ip, bytes32[] _mask, address _contractAddress, address _votingAddress) public {
     MemberAddresses memory member = ethAddresses[_asn];
     //throw error if member already exist
-    assert(member.contractAddress == 0);
+    require(member.contractAddress == 0);
     for(uint i=0; i<_ip.length; i++){
       managedIps[_asn].push(IPAddress({ip:_ip[i], mask:_mask[i]}));
     }
     uint idx = registeredAsn.push(_asn)-1;
-    ethAddresses[_asn] = MemberAddresses({contractAddress:_contractAddress, walletAddress:_walletAddress, index:idx});
+    ethAddresses[_asn] = MemberAddresses({contractAddress:_contractAddress, votingAddress:_votingAddress, index:idx});
     emit EventMemberAdded(_asn);
   }
 
@@ -96,5 +92,47 @@ contract AsnScRegistry is owned{
   function getRegisteredAsn() view public returns (uint[] _asn){
     return (registeredAsn);
   }
+
+  function getAllMembersVotingAddresses() view public returns (address[] _votingAddresses) {
+    address[] memory votingAddresses = new address[](registeredAsn.length);
+    for(uint i = 0; i< registeredAsn.length; i++) {
+      votingAddresses[i] = ethAddresses[registeredAsn[i]].votingAddress;
+    }
+
+    return (votingAddresses);
+  }
+
+  function isMember(address _memberAddress) view public returns (bool _isExist) {
+    bool isExist = false;
+    for(uint i = 0; i< registeredAsn.length; i++) {
+      if (_memberAddress == ethAddresses[registeredAsn[i]].votingAddress) {
+        isExist = true;
+        break;
+      }
+    }
+    return isExist;
+  }
+
+  function extractString(bytes32 _rawString) view private returns(bytes32[] _parts) {
+    //string memory converted = string(_rawString);
+    strings.slice memory s = _rawString.toSliceB32();
+    strings.slice memory delim = ",".toSlice();
+       bytes32[] memory parts = new bytes32[](s.count(delim));
+       for (uint i = 0; i < parts.length; i++) {
+          parts[i] = stringToBytes32(s.split(delim).toString());
+       }
+   return parts;
+  }
+
+  function stringToBytes32(string memory source) view private returns (bytes32 result) {
+    bytes memory tempEmptyStringTest = bytes(source);
+    if (tempEmptyStringTest.length == 0) {
+      return 0x0;
+      }
+
+    assembly {
+      result := mload(add(source, 32))
+      }
+    }
 
 }
