@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>BloSS Registrys</title>
+  </head>
+  <body>
+  <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+  <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+
+
+
+
+    <script>
+    var web3;
+    if (typeof web3 !== 'undefined') {
+           web3 = new Web3(web3.currentProvider);
+           console.log("metamask");
+       } else {
+           // set the provider you want from Web3.providers
+           web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+           console.log("custom provider");
+       }
+
+   var abi = [
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "owner",
+       "outputs": [
+         {
+           "name": "",
+           "type": "address"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "newOwner",
+           "type": "address"
+         }
+       ],
+       "name": "transferOwnership",
+       "outputs": [],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256[]"
+         },
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_contractAddress",
+           "type": "address[]"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address[]"
+         },
+         {
+           "name": "_size",
+           "type": "uint256"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "constructor"
+     },
+     {
+       "anonymous": false,
+       "inputs": [
+         {
+           "indexed": false,
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "EventMemberAdded",
+       "type": "event"
+     },
+     {
+       "anonymous": false,
+       "inputs": [
+         {
+           "indexed": false,
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "EventMemberRemoved",
+       "type": "event"
+     },
+     {
+       "anonymous": false,
+       "inputs": [
+         {
+           "indexed": false,
+           "name": "_i",
+           "type": "uint256"
+         }
+       ],
+       "name": "EventDebug",
+       "type": "event"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "getManagedIpByAsn",
+       "outputs": [
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "getMemberAddressesByAsn",
+       "outputs": [
+         {
+           "name": "_contractAddress",
+           "type": "address"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         },
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_contractAddress",
+           "type": "address"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address"
+         }
+       ],
+       "name": "addMember",
+       "outputs": [],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "removeMember",
+       "outputs": [
+         {
+           "name": "_registeredAsn",
+           "type": "uint256[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getTotalMembers",
+       "outputs": [
+         {
+           "name": "_totalMembers",
+           "type": "uint256"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getRegisteredAsn",
+       "outputs": [
+         {
+           "name": "_asn",
+           "type": "uint256[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getAllMembersVotingAddresses",
+       "outputs": [
+         {
+           "name": "_votingAddresses",
+           "type": "address[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_memberAddress",
+           "type": "address"
+         }
+       ],
+       "name": "isMember",
+       "outputs": [
+         {
+           "name": "_isExist",
+           "type": "bool"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     }
+   ];
+   var ecRegistry = new web3.eth.Contract(abi,"0xD3edAF4EC2eC0e7BE6BbbCB1fE1f9DC7DA1a48B0");
+
+   var getManagedIp = async function(asn) {
+     const ipAddress = await ecRegistry.methods.getManagedIpByAsn(asn).call();
+     return ipAddress;
+   }
+
+   var getEthAddresses = async function(asn) {
+     const ethAddresses = await ecRegistry.methods.getMemberAddressesByAsn(asn).call();
+     return ethAddresses;
+   }
+
+   var getAsnList = async function() {
+     const list = await ecRegistry.methods.getRegisteredAsn().call();
+     return list;
+   }
+
+
+    var updateList = async function() {
+      var membersAsn = getAsnList();
+      membersAsn.then(list =>{
+        for (let i=0;i<list.length; i++) {
+
+          let membersIp = getManagedIp(list[i]);
+          let membersAddresses = getEthAddresses(list[i]);
+
+          Promise.all([membersIp, membersAddresses]).then(function(values){
+            let managedIpHex = values[0];
+            let managedIpStr = [];
+            let contractAddresses = values[1][0];
+            let votingAddresses = values[1][1];
+
+            for(let j = 0; j< managedIpHex.length; j++) {
+              managedIpStr.push(web3.utils.hexToUtf8(managedIpHex[j]));
+            }
+            let asnCell = "<td>"+ list[i] + "</td>";
+            let managedIpCell = "<td>"+ managedIpStr.join(",") + "</td>";
+            let contractAddressCell = "<td>"+ contractAddresses + "</td>";
+            let votingAddressCell = "<td>"+ contractAddresses + "</td>";
+            let row = "<tr>"+ asnCell + managedIpCell + contractAddressCell + votingAddressCell +"</tr>"
+            $("#registry #members-list").append(row);
+          })
+        }
+
+
+      })
+    }
+
+    //setInterval("updateList()", 2000);
+    //updateList()
+
+    $(document).ready(function () {
+  //your code here
+  //getRegisteredAsn().then(getManagedIpByAsn).then(members => console.log(members[123]));
+  updateList();
+});
+    </script>
+    <h1 align="center">BloSS Registrys</h1>
+    <div class="container">
+      <table id="registry" class="table table-hover">
+        <thead>
+          <tr>
+            <th scope="col">ASN</th>
+            <th scope="col">IP Address</th>
+            <th scope="col">Smart Contract Address</th>
+            <th scope="col">Voting Address</th>
+          </tr>
+        </thead>
+        <tbody id="members-list">
+        </tbody>
+      </table>
+    </div><!-- /.container -->
+  </body>
+</html>

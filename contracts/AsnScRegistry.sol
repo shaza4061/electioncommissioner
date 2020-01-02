@@ -14,11 +14,6 @@ import "./strings.sol";
 contract AsnScRegistry is owned{
   using strings for *;
 
-  struct IPAddress {
-    bytes32 ip;
-    bytes32 mask;
-    }
-
   struct MemberAddresses {
     address contractAddress;
     address votingAddress;
@@ -26,32 +21,31 @@ contract AsnScRegistry is owned{
   }
   event EventMemberAdded(uint _asn);
   event EventMemberRemoved(uint _asn);
+  event EventDebug(uint _i);
 
-  mapping (uint => IPAddress[]) managedIps;
+  mapping (uint => bytes32[]) managedIps;
   mapping (uint => MemberAddresses) ethAddresses;
 
   uint[] private registeredAsn;
 
   //need constructor to accept initial member
-  constructor(uint[] _asn, bytes32[] _ip, bytes32[] _mask, address[] _contractAddress, address[] _votingAddress, uint _size) {
+  constructor(uint[] _asn, bytes32[] _ip, address[] _contractAddress, address[] _votingAddress, uint _size) {
     for(uint i = 0; i < _size; i++) {
       bytes32[] memory ips = extractString(_ip[i]);
-      bytes32[] memory masks = extractString(_mask[i]);
-      addMember(_asn[i], ips, masks, _contractAddress[i], _votingAddress[i]);
+      addMember(_asn[i], ips, _contractAddress[i], _votingAddress[i]);
     }
 
   }
 
-  function getManagedIpByAsn(uint _asn) view public returns (bytes32[] _ip, bytes32[] _mask){
-    IPAddress[] memory addresses = managedIps[_asn];
+  function getManagedIpByAsn(uint _asn) view public returns (bytes32[] _ip){
+    bytes32[] memory addresses = managedIps[_asn];
     bytes32[] memory ips = new bytes32[](addresses.length);
-    bytes32[] memory mask = new bytes32[](addresses.length);
-
+    emit EventDebug(addresses.length);
     for (uint i = 0; i < addresses.length; i++) {
-            ips[i] = addresses[i].ip;
-            mask[i] = addresses[i].mask;
+            ips[i] = addresses[i];
         }
-    return (ips, mask);
+        emit EventDebug(ips.length);
+    return (ips);
   }
 
   function getMemberAddressesByAsn(uint _asn) view public returns (address _contractAddress, address _votingAddress){
@@ -59,12 +53,13 @@ contract AsnScRegistry is owned{
     return (memberAddresses.contractAddress, memberAddresses.votingAddress);
   }
 
-  function addMember(uint _asn, bytes32[] _ip, bytes32[] _mask, address _contractAddress, address _votingAddress) public {
+  function addMember(uint _asn, bytes32[] _ip, address _contractAddress, address _votingAddress) public {
     MemberAddresses memory member = ethAddresses[_asn];
     //throw error if member already exist
     require(member.contractAddress == 0);
+    emit EventDebug(_ip.length);
     for(uint i=0; i<_ip.length; i++){
-      managedIps[_asn].push(IPAddress({ip:_ip[i], mask:_mask[i]}));
+      managedIps[_asn].push(_ip[i]);
     }
     uint idx = registeredAsn.push(_asn)-1;
     ethAddresses[_asn] = MemberAddresses({contractAddress:_contractAddress, votingAddress:_votingAddress, index:idx});
@@ -95,10 +90,11 @@ contract AsnScRegistry is owned{
 
   function getAllMembersVotingAddresses() view public returns (address[] _votingAddresses) {
     address[] memory votingAddresses = new address[](registeredAsn.length);
+    EventDebug(registeredAsn.length);
     for(uint i = 0; i< registeredAsn.length; i++) {
       votingAddresses[i] = ethAddresses[registeredAsn[i]].votingAddress;
     }
-
+    EventDebug(votingAddresses.length);
     return (votingAddresses);
   }
 
@@ -117,7 +113,7 @@ contract AsnScRegistry is owned{
     //string memory converted = string(_rawString);
     strings.slice memory s = _rawString.toSliceB32();
     strings.slice memory delim = ",".toSlice();
-       bytes32[] memory parts = new bytes32[](s.count(delim));
+       bytes32[] memory parts = new bytes32[](s.count(delim)+1);//offset by 1
        for (uint i = 0; i < parts.length; i++) {
           parts[i] = stringToBytes32(s.split(delim).toString());
        }

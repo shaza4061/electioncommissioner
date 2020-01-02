@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="Open Vote Network on Ethereum">
+    <meta name="author" content="Paddy">
+    <title>Live Feed</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="starter-template.css" rel="stylesheet">
+
+    <style> div { max-width: 600px; text-align: center;} </style>
+
+  </head>
+
+  <body>
+
+    <div class="container">
+
+      <h3 id="state"></h3>
+      <div class="panel panel-primary">
+         <div class="panel-heading">Colour codes.</div>
+         <ul class="list-group">
+             <li class="list-group-item list-group-item-success">Voter has voted.</li>
+             <li class="list-group-item list-group-item-danger">Optional Phase: Voter has commited (and not revealed) their vote.</li>
+             <li class="list-group-item list-group-item-info">Voter has registered to vote. </li>
+             <li class="list-group-item">Voter is eligible to vote.</li>
+         </ul>
+      </div>
+
+      <div class="panel panel-primary">
+         <div class="panel-heading">Vote Cast.  </div>
+         <ul id="voted" class="list-group"></ul>
+      </div>
+      <div class="panel panel-primary" id="commitdiv">
+         <div class="panel-heading">Committed (and not revealed) their vote.</div>
+         <ul id="committed" class="list-group"></ul>
+      </div>
+      <div class="panel panel-primary">
+         <div class="panel-heading">Registered to vote. </div>
+         <ul id="registered" class="list-group"></ul>
+      </div>
+      <div class="panel panel-primary">
+         <div class="panel-heading">Eligible to vote. </div>
+         <ul id="listaddresses" class="list-group"></ul>
+      </div>
+    </div><!-- /.container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src= "https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+    <script src="bignumber.min.js"></script>
+
+    <script>
+
+    var web3;
+    var password = "ilikelittlepaddy";
+    if (typeof web3 !== 'undefined') {
+      web3 = new Web3(web3.currentProvider);
+    } else {
+      // set the provider you want from Web3.providers
+      web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+    }
+
+    // Anonymous Voting Contract
+    var abi = [
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "name": "eligible",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "xG",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "vG",
+            "type": "uint256[3]"
+          },
+          {
+            "name": "r",
+            "type": "uint256"
+          }
+        ],
+        "name": "register",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": true,
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "computeTally",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "withdrawRefund",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "name": "addressid",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "totaleligible",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "getVoter",
+        "outputs": [
+          {
+            "name": "_registeredkey",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "_reconstructedkey",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "_commitment",
+            "type": "bytes32"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "endSignupPhase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "commitmentphase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "question",
+        "outputs": [
+          {
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "finishSignupPhase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "endRefundPhase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "h",
+            "type": "bytes32"
+          }
+        ],
+        "name": "submitCommitment",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "totalrefunded",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "endCommitmentPhase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "finishRegistrationPhase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "params",
+            "type": "uint256[4]"
+          },
+          {
+            "name": "y",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a2",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b2",
+            "type": "uint256[2]"
+          }
+        ],
+        "name": "submitVote",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "gap",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "totalcommitted",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "name": "votecast",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "deadlinePassed",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "totalvoted",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "params",
+            "type": "uint256[4]"
+          },
+          {
+            "name": "y",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a2",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b2",
+            "type": "uint256[2]"
+          }
+        ],
+        "name": "verify1outof2ZKP",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "charity",
+        "outputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "endVotingPhase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "name": "commitment",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "name": "registered",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "name": "refunds",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "state",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint8"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "totaltorefund",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "finaltally",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "totalregistered",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "sendToCharity",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "voters",
+        "outputs": [
+          {
+            "name": "addr",
+            "type": "address"
+          },
+          {
+            "name": "commitment",
+            "type": "bytes32"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "lostdeposit",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "addresses",
+        "outputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "transferOwnership",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "depositrequired",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "xG",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "r",
+            "type": "uint256"
+          },
+          {
+            "name": "vG",
+            "type": "uint256[3]"
+          }
+        ],
+        "name": "verifyZKP",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "name": "_registryAddress",
+            "type": "address"
+          },
+          {
+            "name": "_finishSignupPhaseDuration",
+            "type": "uint256"
+          },
+          {
+            "name": "_endSignupPhaseDuration",
+            "type": "uint256"
+          },
+          {
+            "name": "_endCommitmentPhaseDuration",
+            "type": "uint256"
+          },
+          {
+            "name": "_endVotingPhaseDuration",
+            "type": "uint256"
+          },
+          {
+            "name": "_endRefundPhase",
+            "type": "uint256"
+          },
+          {
+            "name": "_deposit",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "anonymous": false,
+        "inputs": [],
+        "name": "EventProposalSubmitted",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "name": "",
+            "type": "string"
+          }
+        ],
+        "name": "EventDebug",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "EventDebugInt",
+        "type": "event"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_asn",
+            "type": "uint256"
+          },
+          {
+            "name": "_ip",
+            "type": "bytes32[]"
+          },
+          {
+            "name": "_scAddress",
+            "type": "address"
+          },
+          {
+            "name": "_votingAddress",
+            "type": "address"
+          },
+          {
+            "name": "_proposalHash",
+            "type": "string"
+          },
+          {
+            "name": "_submissionTime",
+            "type": "uint256"
+          }
+        ],
+        "name": "submitProposal",
+        "outputs": [],
+        "payable": true,
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "getProposal",
+        "outputs": [
+          {
+            "name": "_asn",
+            "type": "uint256"
+          },
+          {
+            "name": "_ip",
+            "type": "bytes32[]"
+          },
+          {
+            "name": "_scAddress",
+            "type": "address"
+          },
+          {
+            "name": "_votingAddress",
+            "type": "address"
+          },
+          {
+            "name": "_proposalHash",
+            "type": "string"
+          },
+          {
+            "name": "_submissionTime",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
+    var anonymousvotingAddr = new web3.eth.Contract(abi,"0xDC7a20473Df6EE6DCB56B2522aFbed8097e7D9b3");
+
+    //TODO: Our program only allows up to 40 addresses.
+    // Might be worth making that '40' a public variable...
+    var addresses = new Array();
+    var eligible = {};
+    var registered = {};
+    var committed = {};
+    var voted = {};
+    var uponPageLoad = true;
+
+    async function currentState() {
+
+      // If the page has just been loaded...
+      // We need the list of eligible voters...
+      if(uponPageLoad) {
+          findEligible();
+          findRegistered()
+          findCommitted();
+          findVoteCast();
+          uponPageLoad = false;
+      }
+
+      var state = await anonymousvotingAddr.methods.state().call();
+
+      // Currently in the SETUP Phase.
+      if(state == 0) {
+          document.getElementById("state").innerHTML = "SETUP: Election Authority sets voters as eligible.";
+          findEligible();
+      } else if(state == 1) { // SIGNUP Phase.
+          document.getElementById("state").innerHTML = "SIGNUP: Voters can sign up.";
+          findRegistered();
+          findCommitted();
+      } else if(state == 2) {
+          document.getElementById("state").innerHTML = "COMMIT: Voters choose (and not reveal) their vote.";
+          findRegistered();
+          findCommitted();
+      } else if(state == 3) {
+          document.getElementById("state").innerHTML = "VOTE: Voters must cast (and reveal) their vote. ";
+          findRegistered();
+          findCommitted();
+          findVoteCast();
+      } else {
+          var yes = anonymousvotingAddr.finaltally(0);
+          var total = anonymousvotingAddr.finaltally(1);
+          var no = total - yes;
+          document.getElementById('state').innerHTML = "TALLY: Yes - " + yes + " No - " + no;
+      }
+    }
+
+    // Which eligible voters have submitted their voting key?
+    async function findRegistered() {
+      // Check which voters have submited their voting key!
+      for(var i=0; i<addresses.length; i++) {
+
+         // Only check if they have not already registered
+         if(!registered[addresses[i]]) {
+
+           // Have they registered since we last checked?
+           if(await anonymousvotingAddr.methods.registered(addresses[i]).call()) {
+               // Add to our HTML list
+               var ul = document.getElementById("registered");
+               var li = document.createElement("li");
+               li.innerHTML = addresses[i];
+               li.setAttribute("id", "registered-" + addresses[i]);
+               li.setAttribute("class", "list-group-item ");
+               ul.appendChild(li);
+
+               registered[addresses[i]] = true;
+               document.getElementById("eligible-" + addresses[i]).setAttribute("class", "list-group-item list-group-item-info");
+           }
+         }
+      }
+    }
+
+    // Find which users have cast (and revealed) their vote.
+    async function findVoteCast() {
+      for(var i=0; i<addresses.length; i++) {
+
+         // Only check if the voter has not already voted
+         if(!voted[addresses[i]]) {
+
+              //Have they voted since we last checked?
+              if(await anonymousvotingAddr.methods.votecast(addresses[i]).call()) {
+                voted[addresses[i]] = true;
+                var ul = document.getElementById("voted");
+                var li = document.createElement("li");
+                li.innerHTML = addresses[i];
+                li.setAttribute("id", "voted-" + addresses[i]);
+                li.setAttribute("class", "list-group-item ");
+                ul.appendChild(li);
+
+                document.getElementById("eligible-" + addresses[i]).setAttribute("class", "list-group-item list-group-item-success");
+                document.getElementById("registered-" + addresses[i]).setAttribute("class", "list-group-item list-group-item-success");
+
+                if(await anonymousvotingAddr.methods.commitmentphase().call()) {
+                   document.getElementById("committed-" + addresses[i]).setAttribute("class", "list-group-item list-group-item-success");
+                }
+              }
+         }
+      }
+    }
+
+    // Find which users have committed, but not revealed their vote.
+    async function findCommitted() {
+
+      // Lets verify this phase is active.
+      if(await anonymousvotingAddr.methods.commitmentphase().call()) {
+          $( "#commitdiv" ).show();
+      } else {
+          $( "#commitdiv" ).hide();
+          return;
+      }
+
+      for(var i=0; i<addresses.length; i++) {
+
+         // Only check if the voter has not already voted
+         if(!committed[addresses[i]]) {
+
+              //Have they voted since we last checked?
+              if(await anonymousvotingAddr.methods.commitment(addresses[i]).call()) {
+                committed[addresses[i]] = true;
+                var ul = document.getElementById("committed");
+                var li = document.createElement("li");
+                li.innerHTML = addresses[i];
+                li.setAttribute("id", "committed-" + addresses[i]);
+                li.setAttribute("class", "list-group-item ");
+                ul.appendChild(li);
+
+                document.getElementById("eligible-" + addresses[i]).setAttribute("class", "list-group-item list-group-item-danger");
+                document.getElementById("registered-" + addresses[i]).setAttribute("class", "list-group-item list-group-item-danger");
+              }
+         }
+      }
+    }
+
+    // Find which addresses are now eligible to vote...
+    async function findEligible() {
+
+        // Check if any new addresses have been set as eligible.
+        const totalNoAddresses = await anonymousvotingAddr.methods.totaleligible().call();
+        for(var i=0; i<totalNoAddresses; i++) {
+            const addr = await anonymousvotingAddr.methods.addresses(i).call();
+
+            // Lets make sure this is a real address...
+            if(addr != '0x') {
+
+              // Have we seen this address before? (if so; it will already be recorded as eligible)
+              if(eligible[addr] === undefined) {
+
+                // Initialise our hashmaps, and store the address
+                eligible[addr] = true;
+                registered[addr] = false;
+                voted[addr] = false;
+                addresses.push(addr);
+
+                // Add to our HTML list
+                var ul = document.getElementById("listaddresses");
+                var li = document.createElement("li");
+                li.innerHTML = addr;
+                li.setAttribute("id", "eligible-" + addr);
+                li.setAttribute("class", "list-group-item ");
+                ul.appendChild(li);
+              }
+            } else {
+              break; // No point continuing
+            }
+        }
+    }
+
+    setInterval("currentState()", 2000);
+    currentState();
+  </script>
+  </body>
+</html>

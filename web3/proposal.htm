@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>BloSS Proposal</title>
+  </head>
+  <body>
+  <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+  <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src= "https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<script>
+var web3;
+if (typeof web3 !== 'undefined') {
+       web3 = new Web3(web3.currentProvider);
+       console.log("web3.currentProvider");
+   } else {
+       // set the provider you want from Web3.providers
+       web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+       console.log("http://localhost:8545");
+   }
+   var accounts = web3.eth.getAccounts();
+   //web3.eth.defaultAccount = accounts[0];
+var abi = [
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "eligible",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "xG",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "vG",
+        "type": "uint256[3]"
+      },
+      {
+        "name": "r",
+        "type": "uint256"
+      }
+    ],
+    "name": "register",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": true,
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "computeTally",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "withdrawRefund",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "addressid",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totaleligible",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "getVoter",
+    "outputs": [
+      {
+        "name": "_registeredkey",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "_reconstructedkey",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "_commitment",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "endSignupPhase",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "commitmentphase",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "question",
+    "outputs": [
+      {
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "finishSignupPhase",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "endRefundPhase",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "h",
+        "type": "bytes32"
+      }
+    ],
+    "name": "submitCommitment",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totalrefunded",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "endCommitmentPhase",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "finishRegistrationPhase",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "params",
+        "type": "uint256[4]"
+      },
+      {
+        "name": "y",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "a1",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "b1",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "a2",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "b2",
+        "type": "uint256[2]"
+      }
+    ],
+    "name": "submitVote",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "gap",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totalcommitted",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "votecast",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "deadlinePassed",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totalvoted",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "params",
+        "type": "uint256[4]"
+      },
+      {
+        "name": "y",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "a1",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "b1",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "a2",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "b2",
+        "type": "uint256[2]"
+      }
+    ],
+    "name": "verify1outof2ZKP",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "charity",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "endVotingPhase",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "commitment",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "registered",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "refunds",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "state",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totaltorefund",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "finaltally",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totalregistered",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "sendToCharity",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "voters",
+    "outputs": [
+      {
+        "name": "addr",
+        "type": "address"
+      },
+      {
+        "name": "commitment",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "lostdeposit",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "addresses",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "depositrequired",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "xG",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "r",
+        "type": "uint256"
+      },
+      {
+        "name": "vG",
+        "type": "uint256[3]"
+      }
+    ],
+    "name": "verifyZKP",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "_registryAddress",
+        "type": "address"
+      },
+      {
+        "name": "_finishSignupPhaseDuration",
+        "type": "uint256"
+      },
+      {
+        "name": "_endSignupPhaseDuration",
+        "type": "uint256"
+      },
+      {
+        "name": "_endCommitmentPhaseDuration",
+        "type": "uint256"
+      },
+      {
+        "name": "_endVotingPhaseDuration",
+        "type": "uint256"
+      },
+      {
+        "name": "_endRefundPhase",
+        "type": "uint256"
+      },
+      {
+        "name": "_deposit",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "EventProposalSubmitted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "name": "EventDebug",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "EventDebugInt",
+    "type": "event"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_asn",
+        "type": "uint256"
+      },
+      {
+        "name": "_ip",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "_scAddress",
+        "type": "address"
+      },
+      {
+        "name": "_votingAddress",
+        "type": "address"
+      },
+      {
+        "name": "_proposalHash",
+        "type": "string"
+      },
+      {
+        "name": "_submissionTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "submitProposal",
+    "outputs": [],
+    "payable": true,
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getProposal",
+    "outputs": [
+      {
+        "name": "_asn",
+        "type": "uint256"
+      },
+      {
+        "name": "_ip",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "_scAddress",
+        "type": "address"
+      },
+      {
+        "name": "_votingAddress",
+        "type": "address"
+      },
+      {
+        "name": "_proposalHash",
+        "type": "string"
+      },
+      {
+        "name": "_submissionTime",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
+var electionCommissioner = new web3.eth.Contract(abi,"0xDC7a20473Df6EE6DCB56B2522aFbed8097e7D9b3");
+
+var managedIpString;
+var accounts;
+
+var openSignatureFile = function(event) {
+    var input = event.target;
+    var reader = new FileReader();
+    reader.onload = function() {
+      document.getElementById('signature').innerHTML = reader.result;
+    }
+
+    reader.readAsText(input.files[0]);
+};
+
+var openProposalFile = function(event) {
+    var input = event.target;
+    var reader = new FileReader();
+    reader.onload = function() {
+      let rawText = reader.result.split("|");
+      let asn = rawText[0];
+       managedIpString = rawText[1];
+      let scAddress = rawText[2];
+      let votingAddress = rawText[3];
+      let managedIp = managedIpString.split(',');
+
+      document.getElementById('asn').value = asn;
+      document.getElementById('scAddress').value = scAddress;
+      document.getElementById('votingAddress').value = votingAddress;
+      for(let i =0; i< managedIp.length; i++) {
+        var ul = document.getElementById("managedIp");
+        var li = document.createElement("li");
+        li.appendChild(document.createTextNode(managedIp[i]));
+        ul.appendChild(li);
+      }
+    }
+
+    reader.readAsText(input.files[0]);
+};
+
+async function sendProposal () {
+  let managedIps = [];
+  let ul = document.getElementById("managedIp");
+  let items = ul.getElementsByTagName("li");
+  for (let i = 0; i < items.length; ++i) {
+    managedIps.push(web3.utils.asciiToHex(items[i].innerText));
+  }
+
+if (window.ethereum) {
+        window.web3 = new Web3(ethereum);
+        try {
+          const dateInSeconds = Math.round((new Date).getTime() / 1000);
+          await electionCommissioner.methods.submitProposal(
+            document.querySelector("#proposal input[name='proposalType']:checked").value,
+            document.getElementById('asn').value,
+            managedIps,
+            document.getElementById('scAddress').value,
+            document.getElementById('votingAddress').value,
+            document.getElementById('signature').innerHTML,
+            dateInSeconds
+          ).send({from: accounts[0],gas: 8075000, value: 1000000000000000000 });
+        } catch (error) {
+            // User denied account access...
+            console.error('User denied account access. [Error]:' + error);
+        }
+        checkStatus();
+    }
+    // Legacy dapp browsers...
+    else if (window.web3) {
+        window.web3 = new Web3(web3.currentProvider);
+        // Acccounts always exposed
+        console.log('Legacy dapp browsers...');
+    }
+    // Non-dapp browsers...
+    else {
+        console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+    }
+
+};
+
+function checkStatus() {
+  electionCommissioner.methods.state().call().then(state => {
+    switch(state) {
+      case 0:
+        proposalStage();
+        break;
+      case 1:
+      case 2:
+      case 3:
+        electionStage()
+        break;
+      case 4:
+        refundStage();
+        break;
+      default:
+        disableForm();
+    }
+
+  }).catch(error => console.error(error));
+}
+
+function proposalStage() {
+  document.getElementById('status').innerHTML = " no ";
+  document.getElementById("selectProposalBtn").disabled = false;
+  document.getElementById("selectSignatureBtn").disabled = false;
+  document.getElementById(a"submitProposal").disabled = false;
+  document.getElementById("startElection").disabled = true;
+  document.getElementById("getDeposit").disabled = true;
+  emptyForm();
+}
+
+function refundStage() {
+  document.getElementById('status').innerHTML = " a ";
+  document.getElementById("selectProposalBtn").disabled = true;
+  document.getElementById("selectSignatureBtn").disabled = true;
+  document.getElementById("submitProposal").disabled = true;
+  document.getElementById("startElection").disabled = true;
+  document.getElementById("getDeposit").disabled = false;
+  let proposal = getProposal();
+  populateForms(proposal);
+}
+
+function emptyForm() {
+  document.getElementById("footer").hide();
+  document.getElementById('asn').empty();
+  document.getElementById('scAddress').empty();
+  document.getElementById('votingAddress').empty();
+  document.getElementById('signature').empty();
+  document.getElementById("managedIp").empty();
+  document.getElementById("proposer").empty()
+  document.getElementById("submissionTime").empty();
+}
+
+function disableForm() {
+  document.getElementById('status').innerHTML = " no ";
+  document.getElementById("selectProposalBtn").disabled = true;
+  document.getElementById("selectSignatureBtn").disabled = true;
+  document.getElementById(a"submitProposal").disabled = true;
+  document.getElementById("startElection").disabled = true;
+  document.getElementById("getDeposit").disabled = true;
+  emptyForm();
+}
+
+async function getProposal() {
+  let proposal = await electionCommissioner.methods.getProposal().call();
+  let managedIpHex = proposal[1];
+  let managedIpStr = [];
+
+  for(let j = 0; j< managedIpHex.length; j++) {
+    managedIpStr.push(web3.utils.hexToUtf8(managedIpHex[j]));
+  }
+
+  var proposal = {
+    type: proposal[0],
+    asn : proposal[1],
+    managedIps : managedIpStr,
+    scAddress : proposal[3],
+    votingAddress : proposal[4],
+    proposalHash : proposal[5],
+    submissionTime : proposal[6],
+    proposer : proposal[7]
+  }
+  return proposal;
+}
+
+function populateForms(proposal) {
+  switch(proposal.type) {
+    case 0: document.getElementById('addMemberProposal').checked = true;
+            break;
+    case 1: document.getElementById('removeMemberProposal').checked = true;
+            break;
+    default: //do nothing
+  }
+  document.getElementById('asn').value = proposal.asn;
+  document.getElementById('scAddress').value = proposal.scAddress;
+  document.getElementById('votingAddress').value = proposal.votingAddress;
+  document.getElementById('signature').innerHTML = proposal.proposalHash;
+  document.getElementById("managedIp").empty();
+  for(let j = 0; j< proposal.managedIps.length; j++) {
+    var ul = document.getElementById("managedIp");
+    var li = document.createElement("li");
+    li.appendChild(document.createTextNode(web3.utils.hexToUtf8(proposal.managedIps[j])));
+    ul.appendChild(li);
+  }
+  document.getElementById("proposer").value = proposal.proposal.proposer;
+  var date = new Date();
+  date.setTime(proposal.submissionTime * 1000);
+  document.getElementById("submissionTime").value = clockformat(date);
+}
+
+function electionStage() {
+  let proposal = getProposal();
+
+  document.getElementById('status').innerHTML = " a ";
+  document.getElementById("selectProposalBtn").disabled = true;
+  document.getElementById("selectSignatureBtn").disabled = true;
+  document.getElementById("submitProposal").disabled = true;
+  document.getElementById("startElection").disabled = false;
+  document.getElementById("getDeposit").disabled = true;
+  populateForms(proposal);
+  document.getElementById("footer").show();
+
+}
+
+$(document).ready(function () {
+  setInterval("checkStatus()", 5000);
+  checkStatus();
+});
+
+window.addEventListener('load', async () => {
+    // Modern dapp browsers...
+    if (window.ethereum) {
+        window.web3 = new Web3(ethereum);
+        try {
+            // Request account access if needed
+            accounts = await ethereum.enable();
+            // Acccounts now exposed
+            console.log("Acccounts now exposed");
+            console.log(accounts);
+        } catch (error) {
+            // User denied account access...
+            console.log("User denied account access");
+            console.warn(error);
+        }
+    }
+    // Legacy dapp browsers...
+    else if (window.web3) {
+        window.web3 = new Web3(web3.currentProvider);
+        // Acccounts always exposed
+        web3.eth.sendTransaction({/* ... */});
+    }
+    // Non-dapp browsers...
+    else {
+        console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+    }
+});
+
+
+</script>
+<form id="proposal">
+  <h1>There is <span id="status"> no </span> proposal in progress</h1>
+  <div class="form-group">
+    <label>Proposal Type </label><input type="radio" id="addMemberProposal" name="proposalType" value="0">Add New Member<input type="radio" id="removeMemberProposal" name="proposalType" value="1">Remove Existing Member
+  </div>
+  <div class="form-group">
+    <label>Load Proposal</label><input id ="selectProposalBtn" type="file" onChange="openProposalFile(event);" disabled>
+  </div>
+  <div class="form-group">
+    <label>ASN</label>
+    <input id="asn" readonly>
+  </div>
+  <div class="form-group">
+    <label>Managed IP</label>
+    <ul id="managedIp"></ul>
+  </div>
+  <div class="form-group">
+    <label>Reporting Address</label>
+    <input id="scAddress" readonly>
+  </div>
+  <div class="form-group">
+    <label>Voting Address</label>
+    <input id="votingAddress" readonly>
+  </div>
+  <div class="form-group">
+    <label for="exampleFormControlTextarea1">Signature</label>
+    <textarea class="form-control" id="signature" rows="12" readonly></textarea>
+    <label class="form-control-sm">Load Signature<input type="file" id="selectSignatureBtn" onChange="openSignatureFile(event);" disabled></label>
+  </div>
+  <div class="form-group">
+    <div id="footer"><span id="proposer"></span> <span id="submissionTime"></span></div>
+  </div>
+  <div class="form-group">
+    <button id="submitProposal" type="button" class="btn btn-primary" onclick="sendProposal();" disabled>Submit</button> &#8594;
+    <button id="startElection" type="button" class="btn btn-primary" onclick="" disabled>Start Election</button> &#8594;
+    <button id="getDeposit" type="button" class="btn btn-primary" onclick="" disabled>Get Deposit</button>
+  </div>
+</form>
+</body>
+</html>

@@ -12,12 +12,14 @@ import "./AsnScRegistry.sol";
 contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B08cA16Cc1f2b1) {
 
   struct Proposal {
+    ProposalType type;
     uint asn;
     bytes32[] ip;
-    bytes32[] mask;
     address scAddress;
     address votingAddress;
     string proposalHash;
+    string proposer;
+    uint deposit;
     uint submissionTime;
   }
 
@@ -27,12 +29,10 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
   uint endCommitmentPhaseDuration;
   uint endVotingPhaseDuration;
   uint endRefundPhaseDuration;
-  uint deposit;
+  uint depositRequired;
   Proposal private currentProposal;
 
   enum ProposalType { ADD_MEMBER, REMOVE_MEMBER }
-
-  event EventProposalSubmitted();
 
   constructor(
       address _registryAddress,
@@ -41,7 +41,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
       uint _endCommitmentPhaseDuration,
       uint _endVotingPhaseDuration,
       uint _endRefundPhase,
-      uint _deposit
+      uint _depositRequired
       ) {
     registry = AsnScRegistry(_registryAddress);
     finishSignupPhaseDuration = _finishSignupPhaseDuration;
@@ -49,28 +49,39 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     endCommitmentPhaseDuration = _endCommitmentPhaseDuration;
     endVotingPhaseDuration = _endVotingPhaseDuration;
     endRefundPhase = _endRefundPhase;
-    deposit = _deposit;
+    depositRequired = _depositRequired;
   }
 
   modifier isMember() {
-    require(registry.isMember(msg.sender), "Not allowed");
+    require(registry.isMember(msg.sender), "Only member can perform action");
     _;
   }
 
-  function submitProposal(uint _asn, bytes32[] _ip, bytes32[] _mask, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime) public isMember payable {
-    // Require Proposer to deposit ether
-    require(msg.value == deposit,  "Deposit sent is not equal to deposit required");
+  modifier isProposer() {
+  require(msg.sender = currentProposal.proposer, "Only proposer can perform action");
+  _;
+  }
 
-    // Store the election authority's deposit
-    // Note: This deposit is only lost if ??
-    refunds[msg.sender] = msg.value;
+  function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime) public isMember payable {
+    // Require Proposer to deposit ether
+    require(msg.value == depositRequired,  "Deposit sent is not equal to deposit required");
 
     //set eligible Voters
     address[] memory voters = registry.getAllMembersVotingAddresses();
     setEligible(voters);
 
     //save the Proposal
-    currentProposal = Proposal({asn:_asn, ip:_ip, mask:_mask, scAddress:_scAddress, votingAddress:_votingAddress, proposalHash:_proposalHash, submissionTime:_submissionTime});
+    currentProposal = Proposal({
+                        type: _proposalType,
+                        asn:_asn,
+                        ip:_ip,
+                        scAddress:_scAddress,
+                        votingAddress:_votingAddress,
+                        proposalHash:_proposalHash,
+                        submissionTime:_submissionTime,
+                        proposer: msg.sender,
+                        deposit: msg.value
+                        });
 
     uint ecFinishSignupPhase = _submissionTime + finishSignupPhaseDuration;
     uint ecEndSignupPhase = ecFinishSignupPhase + endSignupPhaseDuration;
@@ -78,12 +89,20 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     uint ecEndVotingPhase = ecEndCommitmentPhase + endVotingPhaseDuration;
     uint ecEndRefundPhase = ecEndVotingPhase + endRefundPhase;
 
-    beginSignUp("Add member", true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndRefundPhase, deposit);
-    emit EventProposalSubmitted();
+    beginSignUp("Add member", true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndRefundPhase, depositRequired);
   }
 
-  function getProposal() view public returns(uint _asn, bytes32[] _ip, bytes32[] _mask, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime) {
-    return(currentProposal.asn, currentProposal.ip, currentProposal.mask, currentProposal.scAddress, currentProposal.votingAddress, currentProposal.proposalHash, currentProposal.submissionTime);
+  function getProposal() view public returns(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, string _proposer) {
+    return(currentProposal.type, currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress, currentProposal.proposalHash, currentProposal.submissionTime, currentProposal.proposer);
+  }
+
+  function getDeposit() public isProposer inState(State.FINISHED) {
+    if (msg.sender.send(refund)) {
+      //refunds successful
+       delete currentProposal;
+    } else {
+      revert("Refund not successful");
+    }
   }
 
 }

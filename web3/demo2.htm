@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>BloSS Registrys</title>
+  </head>
+  <body>
+  <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+  <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+
+
+
+
+    <script>
+    var web3;
+    if (typeof web3 !== 'undefined') {
+           web3 = new Web3(web3.currentProvider);
+       } else {
+           // set the provider you want from Web3.providers
+           web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+       }
+
+   var abi = [
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "owner",
+       "outputs": [
+         {
+           "name": "",
+           "type": "address"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "newOwner",
+           "type": "address"
+         }
+       ],
+       "name": "transferOwnership",
+       "outputs": [],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256[]"
+         },
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_mask",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_contractAddress",
+           "type": "address[]"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address[]"
+         },
+         {
+           "name": "_size",
+           "type": "uint256"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "constructor"
+     },
+     {
+       "anonymous": false,
+       "inputs": [
+         {
+           "indexed": false,
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "EventMemberAdded",
+       "type": "event"
+     },
+     {
+       "anonymous": false,
+       "inputs": [
+         {
+           "indexed": false,
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "EventMemberRemoved",
+       "type": "event"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "getManagedIpByAsn",
+       "outputs": [
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_mask",
+           "type": "bytes32[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "getMemberAddressesByAsn",
+       "outputs": [
+         {
+           "name": "_contractAddress",
+           "type": "address"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         },
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_mask",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_contractAddress",
+           "type": "address"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address"
+         }
+       ],
+       "name": "addMember",
+       "outputs": [],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "removeMember",
+       "outputs": [
+         {
+           "name": "_registeredAsn",
+           "type": "uint256[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getTotalMembers",
+       "outputs": [
+         {
+           "name": "_totalMembers",
+           "type": "uint256"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getRegisteredAsn",
+       "outputs": [
+         {
+           "name": "_asn",
+           "type": "uint256[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getAllMembersVotingAddresses",
+       "outputs": [
+         {
+           "name": "_votingAddresses",
+           "type": "address[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_memberAddress",
+           "type": "address"
+         }
+       ],
+       "name": "isMember",
+       "outputs": [
+         {
+           "name": "_isExist",
+           "type": "bool"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     }
+   ];
+   var ecRegistry = new web3.eth.Contract(abi,"0x29724a2095a49dFeFB0139c8F8AEB8a15281CaE2");
+   var _asn=[];
+   populateAsn(_asn).then(function(a){//do something with arr
+     $("tbody#members-list").append("<tr></tr>");
+     for(var i=0; i< a.length; i++) {
+       $("tbody#members-list tr:first").append("<td>"+a[i]+"</td>");
+       //get managed ip addresses
+       ecRegistry.methods.getManagedIpByAsn(a[i]).call(function(err,res){
+         if(!err){
+           var ips = res[0];
+           var masks = res[1];
+
+           for (var k = 0 ; k < ips.length; k++ ){
+             $("tbody#members-list tr:first").append("<td>"+web3.utils.hexToUtf8(ips[k])+"</td>");
+             $("tbody#members-list tr:first").append("<td>"+web3.utils.hexToUtf8(masks[k])+"</td>");
+           }
+         } else {
+           console.warn(err);
+         }
+       });
+
+       ecRegistry.methods.getMemberAddressesByAsn(a[i]).call(function(err,res) {
+         if(!err){
+           $("tbody#members-list tr:first").append("<td>"+res[0]+"</td>");
+           $("tbody#members-list tr:first").append("<td>"+res[1]+"</td>");
+         } else {
+           console.warn(err);
+         }
+       });
+
+     }
+   });
+
+   function populateAsn(asn) {
+     return new Promise(function(resolve, reject){
+        //do something
+        asn=ecRegistry.methods.getRegisteredAsn().call();
+        resolve(asn); //resolve with value
+    });
+   }
+
+
+    function updateList() {
+    }
+
+    //setInterval("updateList()", 2000);
+    updateList()
+
+    $(document).ready(function () {
+  //your code here
+  populateAsn(_asn);
+});
+    </script>
+    <h1 align="center">BloSS Proposal Submission</h1>
+    <form>
+        <div class="form-group">
+            <label for="exampleInputEmail1">Email address</label>
+            <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
+            <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+       </div>
+      <div class="form-group">
+          <label for="exampleInputPassword1">Password</label>
+          <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+  </div>
+  <div class="form-group form-check">
+    <input type="checkbox" class="form-check-input" id="exampleCheck1">
+    <label class="form-check-label" for="exampleCheck1">Check me out</label>
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+  </body>
+</html>

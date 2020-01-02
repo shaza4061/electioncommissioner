@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>BloSS Registrys</title>
+  </head>
+  <body>
+  <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+
+
+    <script>
+    var web3;
+    if (typeof web3 !== 'undefined') {
+           web3 = new Web3(web3.currentProvider);
+       } else {
+           // set the provider you want from Web3.providers
+           web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+       }
+
+   var abi = [
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "owner",
+       "outputs": [
+         {
+           "name": "",
+           "type": "address"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "newOwner",
+           "type": "address"
+         }
+       ],
+       "name": "transferOwnership",
+       "outputs": [],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256[]"
+         },
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_mask",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_contractAddress",
+           "type": "address[]"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address[]"
+         },
+         {
+           "name": "_size",
+           "type": "uint256"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "constructor"
+     },
+     {
+       "anonymous": false,
+       "inputs": [
+         {
+           "indexed": false,
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "EventMemberAdded",
+       "type": "event"
+     },
+     {
+       "anonymous": false,
+       "inputs": [
+         {
+           "indexed": false,
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "EventMemberRemoved",
+       "type": "event"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "getManagedIpByAsn",
+       "outputs": [
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_mask",
+           "type": "bytes32[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "getMemberAddressesByAsn",
+       "outputs": [
+         {
+           "name": "_contractAddress",
+           "type": "address"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         },
+         {
+           "name": "_ip",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_mask",
+           "type": "bytes32[]"
+         },
+         {
+           "name": "_contractAddress",
+           "type": "address"
+         },
+         {
+           "name": "_votingAddress",
+           "type": "address"
+         }
+       ],
+       "name": "addMember",
+       "outputs": [],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "constant": false,
+       "inputs": [
+         {
+           "name": "_asn",
+           "type": "uint256"
+         }
+       ],
+       "name": "removeMember",
+       "outputs": [
+         {
+           "name": "_registeredAsn",
+           "type": "uint256[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "nonpayable",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getTotalMembers",
+       "outputs": [
+         {
+           "name": "_totalMembers",
+           "type": "uint256"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getRegisteredAsn",
+       "outputs": [
+         {
+           "name": "_asn",
+           "type": "uint256[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [],
+       "name": "getAllMembersVotingAddresses",
+       "outputs": [
+         {
+           "name": "_votingAddresses",
+           "type": "address[]"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     },
+     {
+       "constant": true,
+       "inputs": [
+         {
+           "name": "_memberAddress",
+           "type": "address"
+         }
+       ],
+       "name": "isMember",
+       "outputs": [
+         {
+           "name": "_isExist",
+           "type": "bool"
+         }
+       ],
+       "payable": false,
+       "stateMutability": "view",
+       "type": "function"
+     }
+   ];
+   var ecRegistry = new web3.eth.Contract(abi,"0x29724a2095a49dFeFB0139c8F8AEB8a15281CaE2");
+   var _asn = [];
+   var _ip = [];
+   var _mask =[];
+   var _votingAddress = [];
+   var _scAddress = [];
+   ecRegistry.methods.getRegisteredAsn().call(function(err,res){
+    if(!err){
+      console.log("res = " + res);
+        _asn = res;
+        console.log("length = " + _asn.length);
+        console.log("res length = " + res.length);
+        for(var i=0; i< _asn.length; i++) {
+          //get managed ip addresses
+          console.log("asn = " + _asn[i]);
+          ecRegistry.methods.getManagedIpByAsn(_asn[i]).call(function(err,res){
+            if(!err){
+              var ips = res[0];
+              var masks = res[1];
+              for (var k = 0 ; k < ips.length; k++ ){
+                console.log("ip = " + web3.utils.hexToUtf8(ips[k]));
+                _ip.push(web3.utils.hexToUtf8(ips[k]));
+              }
+              for (var k = 0 ; k < ips.length; k++ ){
+                console.log("ip = " + web3.utils.hexToUtf8(masks[k]));
+                _mask.push(web3.utils.hexToUtf8(ips[k]));
+              }
+              //_ip = _ip.concat(res[0]);
+              console.log("aaaaa " + _ip);
+            } else {
+              console.log(err);
+            }
+          });
+          //get smart contract addresses
+          ecRegistry.methods.getMemberAddressesByAsn(_asn[i]).call(function(err,res){
+            if(!err){
+              _scAddress = _scAddress.concat(res[0]);
+              _votingAddress = _votingAddress.concat(res[1]);
+            } else {
+              console.log(err);
+            }
+          });
+        }
+        console.log(_asn);
+        console.log(_ip);
+        console.log(_scAddress);
+        console.log(_votingAddress);
+    } else {
+        console.log(err);
+    }
+
+});
+
+
+
+
+
+    function updateList() {
+    }
+
+    //setInterval("updateList()", 2000);
+    updateList()
+    </script>
+  </body>
+</html>

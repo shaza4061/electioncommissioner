@@ -532,10 +532,8 @@ contract AnonymousVoting is owned {
     if(totaleligible > 50) {
       throw;
     }
-
     // Sign up the addresses
     for(uint i=0; i<addr.length; i++) {
-
       if(!eligible[addr[i]]) {
         eligible[addr[i]] = true;
         addresses.push(addr[i]);
@@ -544,8 +542,6 @@ contract AnonymousVoting is owned {
     }
   }
 
-  event EventDebug(string);
-  event EventDebugInt(uint);
   // Owner of contract declares that eligible addresses begin round 1 of the protocol
   // Time is the number of 'blocks' we must wait until we can move onto round 2.
   function beginSignUp(string _question, bool enableCommitmentPhase, uint _finishSignupPhase, uint _endSignupPhase, uint _endCommitmentPhase, uint _endVotingPhase, uint _endRefundPhase, uint _depositrequired) inState(State.SETUP) internal {

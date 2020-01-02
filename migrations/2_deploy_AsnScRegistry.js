@@ -1,12 +1,11 @@
 // Fetch the Storage contract data from the Storage.json file
 const AsnScRegistry = artifacts.require("AsnScRegistry.sol");
 
-const _asn = [999];
-const _ip = [web3.utils.asciiToHex("192.168.1.1,127.0.0.1")];
-const _mask = [web3.utils.asciiToHex("255.0.0.0,255.0.0.0")];
-const _smartContractAddr = ["0xFF2C4D4890d6Be87cA259a1763B08cA16Cc1f2b1"];
-const _votingAddr = ["0x74A021dE8bd500b26333a05e96761fe323ec57ba"];
-const _size = 1;
+const _asn = [999,777,666];
+const _ip = [web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32"), web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32"), web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")];
+const _smartContractAddr = ["0x74A021dE8bd500b26333a05e96761fe323ec57ba","0x53075fbf8bd109021283d87daf643f6E8E39c0Ed","0x0289af55758F2F5bA64f8E1cd29663E78f63F295"];
+const _votingAddr = ["0x74A021dE8bd500b26333a05e96761fe323ec57ba","0x53075fbf8bd109021283d87daf643f6E8E39c0Ed","0x0289af55758F2F5bA64f8E1cd29663E78f63F295"];
+const _size = 3;
 
 
 // JavaScript export
@@ -15,5 +14,5 @@ module.exports = function(deployer, network) {
     // contracts to the network
 
     // Deploy the contract to the network
-    deployer.deploy(AsnScRegistry, _asn, _ip, _mask, _smartContractAddr, _votingAddr, _size);
+    deployer.deploy(AsnScRegistry, _asn, _ip, _smartContractAddr, _votingAddr, _size);
 }
