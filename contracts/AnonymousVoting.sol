@@ -544,7 +544,7 @@ contract AnonymousVoting is owned {
 
   // Owner of contract declares that eligible addresses begin round 1 of the protocol
   // Time is the number of 'blocks' we must wait until we can move onto round 2.
-  function beginSignUp(string _question, bool enableCommitmentPhase, uint _finishSignupPhase, uint _endSignupPhase, uint _endCommitmentPhase, uint _endVotingPhase, uint _endRefundPhase, uint _depositrequired) inState(State.SETUP) internal {
+  function beginSignUp(string _question, bool enableCommitmentPhase, uint _finishSignupPhase, uint _endSignupPhase, uint _endCommitmentPhase, uint _endVotingPhase, uint _endRefundPhase, uint _depositrequired) inState(State.SETUP) internal returns (bool){
 
     // We have lots of timers. let's explain each one
     // _finishSignUpPhase - Voters should be signed up before this timer
@@ -561,25 +561,25 @@ contract AnonymousVoting is owned {
     // TODO: Enforce gap to be at least 1 hour.. may break unit testing
     // Make sure 3 people are at least eligible to vote..
     // Deposit can be zero or more WEI
-    require(_finishSignupPhase > 0,"finish signup phase needs cannot be 0" );
-    require(addresses.length >= 3, "Minumum 3 members is requred to start an election");
+    if(_finishSignupPhase > 0 + gap && addresses.length >= 3 && _depositrequired >= 0) {
 
         // Ensure each time phase finishes in the future...
         // Ensure there is a gap of 'x time' between each phase.
         if(_endSignupPhase-gap < _finishSignupPhase) {
-          revert("Not enough gap between _endSignupPhase and _finishSignupPhase");
+          return false;
         }
 
         // We need to check Commitment timestamps if phase is enabled.
         if(enableCommitmentPhase) {
+
           // Make sure there is a gap between 'end of registration' and 'end of commitment' phases.
           if(_endCommitmentPhase-gap < _endSignupPhase) {
-            revert("Not enough gap between _endCommitmentPhase and _endSignupPhase");
+            return false;
           }
 
           // Make sure there is a gap between 'end of commitment' and 'end of vote' phases.
           if(_endVotingPhase-gap < _endCommitmentPhase) {
-            revert("Not enough gap between _endVotingPhase and _endCommitmentPhase");
+            return false;
           }
 
         } else {
@@ -587,15 +587,26 @@ contract AnonymousVoting is owned {
           // We have no commitment phase.
           // Make sure there is a gap between 'end of registration' and 'end of vote' phases.
           if(_endVotingPhase-gap < _endSignupPhase) {
-            revert("Not enough gap between _endVotingPhase and _endCommitmentPhase");
+            return false;
           }
         }
 
         // Provide time for people to get a refund once the voting phase has ended.
-        require(_endRefundPhase-gap > _endVotingPhase, "Not enough gap between _endRefundPhase and _endVotingPhase");
         if(_endRefundPhase-gap < _endVotingPhase) {
-          revert("Not enough gap between _endRefundPhase and _endVotingPhase");
+          return false;
         }
+
+
+      // Require Election Authority to deposit ether.
+      if(msg.value  != _depositrequired) {
+        return false;
+      }
+
+      // Store the election authority's deposit
+      // Note: This deposit is only lost if the
+      // election authority does not begin the election
+      // or call the tally function before the timers expire.
+      refunds[msg.sender] = msg.value;
 
       // All time stamps are reasonable.
       // We can now begin the signup phase.
@@ -610,6 +621,11 @@ contract AnonymousVoting is owned {
       question = _question;
       commitmentphase = enableCommitmentPhase;
       depositrequired = _depositrequired; // Deposit required from all voters
+
+      return true;
+    }
+
+    return false;
   }
 
   // This function determines if one of the deadlines have been missed
@@ -629,6 +645,7 @@ contract AnonymousVoting is owned {
 
          // Election Authority forfeits his deposit...
          // If 3 or more voters had signed up...
+         /**
          if(addresses.length >= 3) {
            // Election Authority forfeits deposit
            refund = refunds[owner];
@@ -636,6 +653,7 @@ contract AnonymousVoting is owned {
            lostdeposit = lostdeposit + refund;
 
          }
+         **/
          return true;
       }
 
@@ -691,7 +709,7 @@ contract AnonymousVoting is owned {
       // Has the deadline passed for voters to claim their refund?
       // Only owner can call. Owner must be refunded (or forfeited).
       // Refund period is over or everyone has already been refunded.
-      if(state == State.FINISHED && msg.sender == owner && refunds[owner] == 0 && (block.timestamp > endRefundPhase || totaltorefund == totalrefunded)) {
+      if(state == State.FINISHED && (block.timestamp > endRefundPhase || totaltorefund == totalrefunded)) {
 
          // Collect all unclaimed refunds. We will send it to charity.
          for(i=0; i<totalregistered; i++) {
@@ -779,26 +797,31 @@ contract AnonymousVoting is owned {
     return false;
   }
 
-
+  event DebugEvent(string msg);
   // Timer has expired - we want to start computing the reconstructed keys
-  function finishRegistrationPhase() inState(State.SIGNUP) onlyOwner returns(bool) {
-
+  function finishRegistrationPhase() inState(State.SIGNUP) public returns(bool) {
+      require(totalregistered > 3, "totalregistered < 3");
+      require(block.timestamp < endSignupPhase, "block.timestamp > endSignupPhase");
+      emit DebugEvent("before checking");
       // Make sure at least 3 people have signed up...
       if(totalregistered < 3) {
-        return;
+        return false;
       }
+      emit DebugEvent("after checking");
 
       // We can only compute the public keys once participants
       // have been given an opportunity to register their
       // voting public key.
       if(block.timestamp < finishSignupPhase) {
-        return;
+        return false;
       }
+      emit DebugEvent("block timestamp > finishSignupPhase");
 
       // Election Authority has a deadline to begin election
       if(block.timestamp > endSignupPhase) {
-        return;
+        return false;
       }
+      emit DebugEvent("block.timestamp < endSignupPhase");
 
       uint[2] memory temp;
       uint[3] memory yG;
@@ -810,6 +833,7 @@ contract AnonymousVoting is owned {
       afteri[1] = voters[1].registeredkey[1];
       afteri[2] = 1;
 
+      emit DebugEvent("Step 1");
       for(uint i=2; i<totalregistered; i++) {
          Secp256k1._addMixedM(afteri, voters[i].registeredkey);
       }
@@ -818,27 +842,31 @@ contract AnonymousVoting is owned {
       voters[0].reconstructedkey[0] = afteri[0];
       voters[0].reconstructedkey[1] = pp - afteri[1];
 
+      emit DebugEvent("Step 2");
       // Step 2 is to add to beforei, and subtract from afteri.
      for(i=1; i<totalregistered; i++) {
-
+      emit DebugEvent("Step 2 loop");
        if(i==1) {
+        emit DebugEvent("a");
          beforei[0] = voters[0].registeredkey[0];
          beforei[1] = voters[0].registeredkey[1];
          beforei[2] = 1;
        } else {
+        emit DebugEvent("b");
          Secp256k1._addMixedM(beforei, voters[i-1].registeredkey);
        }
-
+       emit DebugEvent("ab");
        // If we have reached the end... just store beforei
        // Otherwise, we need to compute a key.
        // Counting from 0 to n-1...
        if(i==(totalregistered-1)) {
+       emit DebugEvent("z");
          ECCMath.toZ1(beforei,pp);
          voters[i].reconstructedkey[0] = beforei[0];
          voters[i].reconstructedkey[1] = beforei[1];
 
        } else {
-
+          emit DebugEvent("x");
           // Subtract 'i' from afteri
           temp[0] = voters[i].registeredkey[0];
           temp[1] = pp - voters[i].registeredkey[1];
@@ -857,9 +885,10 @@ contract AnonymousVoting is owned {
 
           voters[i].reconstructedkey[0] = yG[0];
           voters[i].reconstructedkey[1] = yG[1];
+          emit DebugEvent("az");
        }
      }
-
+     emit DebugEvent("FInish computation");
       // We have computed each voter's special voting key.
       // Now we either enter the commitment phase (option) or voting phase.
       if(commitmentphase) {
@@ -902,7 +931,7 @@ contract AnonymousVoting is owned {
   }
 
   // Given the 1 out of 2 ZKP - record the users vote!
-  function submitVote(uint[4] params, uint[2] y, uint[2] a1, uint[2] b1, uint[2] a2, uint[2] b2) inState(State.VOTE) returns (bool) {
+  function submitVoteInternal(uint[4] params, uint[2] y, uint[2] a1, uint[2] b1, uint[2] a2, uint[2] b2) inState(State.VOTE) internal returns (bool) {
 
      // HARD DEADLINE
      if(block.timestamp > endVotingPhase) {
@@ -961,7 +990,7 @@ contract AnonymousVoting is owned {
   // Election Authority gets deposit upon tallying.
   // TODO: Anyone can do this function. Perhaps remove refund code - and force Election Authority
   // to explicit withdraw it? Election cannot reset until he is refunded - so that should be OK
-  function computeTally() inState(State.VOTE) onlyOwner {
+  function computeTally() inState(State.VOTE) internal {
 
      uint[3] memory temp;
      uint[2] memory vote;
@@ -972,7 +1001,7 @@ contract AnonymousVoting is owned {
 
          // Confirm all votes have been cast...
          if(!votecast[voters[i].addr]) {
-            throw;
+            revert("Cannot compute tally. Not all votes have been cast");
          }
 
          vote = voters[i].vote;

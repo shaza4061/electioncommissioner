@@ -124,15 +124,6 @@
       {
         "constant": false,
         "inputs": [],
-        "name": "computeTally",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "constant": false,
-        "inputs": [],
         "name": "withdrawRefund",
         "outputs": [],
         "payable": false,
@@ -304,59 +295,6 @@
         ],
         "payable": false,
         "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "constant": false,
-        "inputs": [],
-        "name": "finishRegistrationPhase",
-        "outputs": [
-          {
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "constant": false,
-        "inputs": [
-          {
-            "name": "params",
-            "type": "uint256[4]"
-          },
-          {
-            "name": "y",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "a1",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "b1",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "a2",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "b2",
-            "type": "uint256[2]"
-          }
-        ],
-        "name": "submitVote",
-        "outputs": [
-          {
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
         "type": "function"
       },
       {
@@ -780,7 +718,11 @@
             "type": "uint256"
           },
           {
-            "name": "_deposit",
+            "name": "_depositRequired",
+            "type": "uint256"
+          },
+          {
+            "name": "_quorumInPercentage",
             "type": "uint256"
           }
         ],
@@ -789,38 +731,12 @@
         "type": "constructor"
       },
       {
-        "anonymous": false,
-        "inputs": [],
-        "name": "EventProposalSubmitted",
-        "type": "event"
-      },
-      {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": false,
-            "name": "",
-            "type": "string"
-          }
-        ],
-        "name": "EventDebug",
-        "type": "event"
-      },
-      {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": false,
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "name": "EventDebugInt",
-        "type": "event"
-      },
-      {
         "constant": false,
         "inputs": [
+          {
+            "name": "_proposalType",
+            "type": "uint8"
+          },
           {
             "name": "_asn",
             "type": "uint256"
@@ -847,7 +763,12 @@
           }
         ],
         "name": "submitProposal",
-        "outputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
         "payable": true,
         "stateMutability": "payable",
         "type": "function"
@@ -857,6 +778,10 @@
         "inputs": [],
         "name": "getProposal",
         "outputs": [
+          {
+            "name": "_proposalType",
+            "type": "uint8"
+          },
           {
             "name": "_asn",
             "type": "uint256"
@@ -880,13 +805,108 @@
           {
             "name": "_submissionTime",
             "type": "uint256"
+          },
+          {
+            "name": "_proposer",
+            "type": "address"
           }
         ],
         "payable": false,
         "stateMutability": "view",
         "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "startElection",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "params",
+            "type": "uint256[4]"
+          },
+          {
+            "name": "y",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a2",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b2",
+            "type": "uint256[2]"
+          }
+        ],
+        "name": "submitVote",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "getQuorumInPercentage",
+        "outputs": [
+          {
+            "name": "_quorumInPercentage",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "cancelProposal",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "getDeposit",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
       }
     ];
+
     var anonymousvotingAddr = new web3.eth.Contract(abi,"0xDC7a20473Df6EE6DCB56B2522aFbed8097e7D9b3");
 
     //TODO: Our program only allows up to 40 addresses.

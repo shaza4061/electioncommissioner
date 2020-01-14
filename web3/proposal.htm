@@ -76,15 +76,6 @@ var abi = [
   {
     "constant": false,
     "inputs": [],
-    "name": "computeTally",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [],
     "name": "withdrawRefund",
     "outputs": [],
     "payable": false,
@@ -262,45 +253,6 @@ var abi = [
     "constant": false,
     "inputs": [],
     "name": "finishRegistrationPhase",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "params",
-        "type": "uint256[4]"
-      },
-      {
-        "name": "y",
-        "type": "uint256[2]"
-      },
-      {
-        "name": "a1",
-        "type": "uint256[2]"
-      },
-      {
-        "name": "b1",
-        "type": "uint256[2]"
-      },
-      {
-        "name": "a2",
-        "type": "uint256[2]"
-      },
-      {
-        "name": "b2",
-        "type": "uint256[2]"
-      }
-    ],
-    "name": "submitVote",
     "outputs": [
       {
         "name": "",
@@ -732,7 +684,11 @@ var abi = [
         "type": "uint256"
       },
       {
-        "name": "_deposit",
+        "name": "_depositRequired",
+        "type": "uint256"
+      },
+      {
+        "name": "_quorumInPercentage",
         "type": "uint256"
       }
     ],
@@ -742,20 +698,14 @@ var abi = [
   },
   {
     "anonymous": false,
-    "inputs": [],
-    "name": "EventProposalSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
     "inputs": [
       {
         "indexed": false,
-        "name": "",
+        "name": "msg",
         "type": "string"
       }
     ],
-    "name": "EventDebug",
+    "name": "DebugEvent0",
     "type": "event"
   },
   {
@@ -763,16 +713,20 @@ var abi = [
     "inputs": [
       {
         "indexed": false,
-        "name": "",
-        "type": "uint256"
+        "name": "msg",
+        "type": "string"
       }
     ],
-    "name": "EventDebugInt",
+    "name": "DebugEvent",
     "type": "event"
   },
   {
     "constant": false,
     "inputs": [
+      {
+        "name": "_proposalType",
+        "type": "uint8"
+      },
       {
         "name": "_asn",
         "type": "uint256"
@@ -799,7 +753,12 @@ var abi = [
       }
     ],
     "name": "submitProposal",
-    "outputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "payable": true,
     "stateMutability": "payable",
     "type": "function"
@@ -809,6 +768,10 @@ var abi = [
     "inputs": [],
     "name": "getProposal",
     "outputs": [
+      {
+        "name": "_proposalType",
+        "type": "uint8"
+      },
       {
         "name": "_asn",
         "type": "uint256"
@@ -832,10 +795,104 @@ var abi = [
       {
         "name": "_submissionTime",
         "type": "uint256"
+      },
+      {
+        "name": "_proposer",
+        "type": "address"
       }
     ],
     "payable": false,
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "startElection",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "params",
+        "type": "uint256[4]"
+      },
+      {
+        "name": "y",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "a1",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "b1",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "a2",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "b2",
+        "type": "uint256[2]"
+      }
+    ],
+    "name": "submitVote",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getQuorumInPercentage",
+    "outputs": [
+      {
+        "name": "_quorumInPercentage",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "cancelProposal",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "getDeposit",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ];
@@ -844,6 +901,18 @@ var electionCommissioner = new web3.eth.Contract(abi,"0xDC7a20473Df6EE6DCB56B252
 
 var managedIpString;
 var accounts;
+var currentState;
+
+electionCommissioner.events.DebugEvent({
+  fromBlock: 'latest',
+  toBlock: 'latest'
+}, function(error, result) {
+  if (!error) {
+    console.log(result);
+  } else {
+    console.log(error);
+  }
+});
 
 var openSignatureFile = function(event) {
     var input = event.target;
@@ -880,6 +949,30 @@ var openProposalFile = function(event) {
     reader.readAsText(input.files[0]);
 };
 
+
+async function beginElection() {
+  let endSignupDateTime = await electionCommissioner.methods.finishSignupPhase().call();
+  let currentBlock = await web3.eth.getBlock("latest");
+  let blocktimestamp = currentBlock.timestamp;
+  console.log("endSignupDateTime = "+ endSignupDateTime +", blocktimestamp = " + blocktimestamp);
+  let overrides = {
+
+    // The address to execute the call as
+    from: "0x74A021dE8bd500b26333a05e96761fe323ec57ba",
+
+    // The maximum units of gas for the transaction to use
+    gasLimit: 4200000,
+
+}
+
+  let success = await electionCommissioner.methods.finishRegistrationPhase().call(overrides);
+  if(success) {
+    await electionCommissioner.methods.finishRegistrationPhase().send({from: accounts[0],gas: 4200000});
+  } else {
+    alert("Problem submitting this proposal");
+  }
+}
+
 async function sendProposal () {
   let managedIps = [];
   let ul = document.getElementById("managedIp");
@@ -890,22 +983,37 @@ async function sendProposal () {
 
 if (window.ethereum) {
         window.web3 = new Web3(ethereum);
-        try {
-          const dateInSeconds = Math.round((new Date).getTime() / 1000);
-          await electionCommissioner.methods.submitProposal(
-            document.querySelector("#proposal input[name='proposalType']:checked").value,
-            document.getElementById('asn').value,
-            managedIps,
-            document.getElementById('scAddress').value,
-            document.getElementById('votingAddress').value,
-            document.getElementById('signature').innerHTML,
-            dateInSeconds
-          ).send({from: accounts[0],gas: 8075000, value: 1000000000000000000 });
-        } catch (error) {
-            // User denied account access...
-            console.error('User denied account access. [Error]:' + error);
+        const dateInSeconds = Math.round((new Date).getTime() / 1000);
+        let success =  await electionCommissioner.methods.submitProposal(
+          document.querySelector("#proposal input[name='proposalType']:checked").value,
+          document.getElementById('asn').value,
+          managedIps,
+          document.getElementById('scAddress').value,
+          document.getElementById('votingAddress').value,
+          document.getElementById('signature').innerHTML,
+          dateInSeconds
+        ).call({from: accounts[0],gas: 4200000, value: 1000000000000000000 });
+
+        if (success) {
+          try {
+            await electionCommissioner.methods.submitProposal(
+              document.querySelector("#proposal input[name='proposalType']:checked").value,
+              document.getElementById('asn').value,
+              managedIps,
+              document.getElementById('scAddress').value,
+              document.getElementById('votingAddress').value,
+              document.getElementById('signature').innerHTML,
+              dateInSeconds
+            ).send({from: accounts[0],gas: 4200000, value: 1000000000000000000 });
+          } catch (error) {
+              // User denied account access...
+              console.error('User denied account access. [Error]:' + error);
+          }
+          checkStatus();
+        } else {
+          alert("There is a problem submitting this proposal.");
         }
-        checkStatus();
+
     }
     // Legacy dapp browsers...
     else if (window.web3) {
@@ -920,127 +1028,216 @@ if (window.ethereum) {
 
 };
 
-function checkStatus() {
+async function checkStatus() {
+  let currentTime = new Date();
+  let endRefundTime = await electionCommissioner.methods.endRefundPhase().call();
+  console.log("currentTime = " + currentTime + ", endRefundTime = "+ (new Date(endRefundTime* 1000)));
   electionCommissioner.methods.state().call().then(state => {
+    currentState = state;
     switch(state) {
-      case 0:
+      case "0":
         proposalStage();
         break;
-      case 1:
-      case 2:
-      case 3:
+      case "1":
+      case "2":
+      case "3":
         electionStage()
         break;
-      case 4:
+      case "4":
         refundStage();
         break;
       default:
         disableForm();
     }
 
-  }).catch(error => console.error(error));
+  });
 }
 
 function proposalStage() {
   document.getElementById('status').innerHTML = " no ";
   document.getElementById("selectProposalBtn").disabled = false;
   document.getElementById("selectSignatureBtn").disabled = false;
-  document.getElementById(a"submitProposal").disabled = false;
-  document.getElementById("startElection").disabled = true;
-  document.getElementById("getDeposit").disabled = true;
-  emptyForm();
+  document.getElementById("submitProposalBtn").disabled = false;
+  document.getElementById("startElectionBtn").disabled = true;
+  document.getElementById("getDepositBtn").disabled = true;
+  document.getElementById("resetElectionBtn").disabled = false;
+  showFooterPanel();
 }
 
 function refundStage() {
   document.getElementById('status').innerHTML = " a ";
   document.getElementById("selectProposalBtn").disabled = true;
   document.getElementById("selectSignatureBtn").disabled = true;
-  document.getElementById("submitProposal").disabled = true;
-  document.getElementById("startElection").disabled = true;
-  document.getElementById("getDeposit").disabled = false;
+  document.getElementById("submitProposalBtn").disabled = true;
+  document.getElementById("startElectionBtn").disabled = true;
+  document.getElementById("getDepositBtn").disabled = false;
+  document.getElementById("startElectionBtn").classList.add('hidden');
+  document.getElementById("resetElectionBtn").classList.remove('hidden');
+  document.getElementById("resetElectionBtn").disabled = false;
   let proposal = getProposal();
-  populateForms(proposal);
+  proposal.then(prop => {
+    populateForms(prop);
+    showFooterPanel(prop.proposer, prop.endSignupTime, prop.startElectionExpiredTime);
+  });
 }
 
 function emptyForm() {
-  document.getElementById("footer").hide();
-  document.getElementById('asn').empty();
-  document.getElementById('scAddress').empty();
-  document.getElementById('votingAddress').empty();
-  document.getElementById('signature').empty();
-  document.getElementById("managedIp").empty();
-  document.getElementById("proposer").empty()
-  document.getElementById("submissionTime").empty();
+  document.getElementById("footer").style.display="none";
+  document.getElementById('asn').value = "";
+  document.getElementById('scAddress').value = "";
+  document.getElementById('votingAddress').value = "";
+  document.getElementById('signature').innerHTML = "";
+  document.getElementById("managedIp").value = "";
+  document.getElementById("proposer").value = "";
+  document.getElementById("submissionTime").value = "";
+  document.getElementById("startElectionBtn").classList.add('hidden');
+  document.getElementById("resetElectionBtn").classList.remove('hidden');
+  document.getElementById("resetElectionBtn").disabled = false;
 }
 
 function disableForm() {
   document.getElementById('status').innerHTML = " no ";
   document.getElementById("selectProposalBtn").disabled = true;
   document.getElementById("selectSignatureBtn").disabled = true;
-  document.getElementById(a"submitProposal").disabled = true;
-  document.getElementById("startElection").disabled = true;
-  document.getElementById("getDeposit").disabled = true;
+  document.getElementById("submitProposalBtn").disabled = true;
+  document.getElementById("startElectionBtn").disabled = true;
+  document.getElementById("getDepositBtn").disabled = true;
+  document.getElementById("startElectionBtn").classList.add('hidden');
+  document.getElementById("resetElectionBtn").classList.remove('hidden');
+  document.getElementById("resetElectionBtn").disabled = false;
   emptyForm();
 }
 
 async function getProposal() {
-  let proposal = await electionCommissioner.methods.getProposal().call();
-  let managedIpHex = proposal[1];
+  let rawProposal = await electionCommissioner.methods.getProposal().call();
+  let managedIpHex = rawProposal[2];
   let managedIpStr = [];
+  let totalMembers = await electionCommissioner.methods.totaleligible().call();
+  let totalInterest = await electionCommissioner.methods.totalregistered().call();
+  let quorumInPercentage = await electionCommissioner.methods.getQuorumInPercentage().call();
+  let endSignupDateTime = await electionCommissioner.methods.finishSignupPhase().call();
+  let startElectionExpiredDateTime = await electionCommissioner.methods.endSignupPhase().call();
 
   for(let j = 0; j< managedIpHex.length; j++) {
     managedIpStr.push(web3.utils.hexToUtf8(managedIpHex[j]));
   }
 
   var proposal = {
-    type: proposal[0],
-    asn : proposal[1],
+    type: rawProposal[0],
+    asn : rawProposal[1],
     managedIps : managedIpStr,
-    scAddress : proposal[3],
-    votingAddress : proposal[4],
-    proposalHash : proposal[5],
-    submissionTime : proposal[6],
-    proposer : proposal[7]
+    scAddress : rawProposal[3],
+    votingAddress : rawProposal[4],
+    proposalHash : rawProposal[5],
+    submissionTime : rawProposal[6],
+    proposer : rawProposal[7],
+    totalMembers : totalMembers,
+    totalInterest: totalInterest,
+    quorumInPercentage: quorumInPercentage,
+    endSignupTime: endSignupDateTime,
+    startElectionExpiredTime: startElectionExpiredDateTime
   }
   return proposal;
 }
 
 function populateForms(proposal) {
   switch(proposal.type) {
-    case 0: document.getElementById('addMemberProposal').checked = true;
+    case "0": document.getElementById('addMemberProposal').checked = true;
             break;
-    case 1: document.getElementById('removeMemberProposal').checked = true;
+    case "1": document.getElementById('removeMemberProposal').checked = true;
             break;
     default: //do nothing
+            console.error("Unrecognized proposal type")
+            return;
   }
   document.getElementById('asn').value = proposal.asn;
   document.getElementById('scAddress').value = proposal.scAddress;
   document.getElementById('votingAddress').value = proposal.votingAddress;
   document.getElementById('signature').innerHTML = proposal.proposalHash;
-  document.getElementById("managedIp").empty();
+  document.getElementById("managedIp").innerHTML = "";
   for(let j = 0; j< proposal.managedIps.length; j++) {
-    var ul = document.getElementById("managedIp");
-    var li = document.createElement("li");
-    li.appendChild(document.createTextNode(web3.utils.hexToUtf8(proposal.managedIps[j])));
+    let ul = document.getElementById("managedIp");
+    let li = document.createElement("li");
+    li.appendChild(document.createTextNode(proposal.managedIps[j]));
     ul.appendChild(li);
   }
-  document.getElementById("proposer").value = proposal.proposal.proposer;
-  var date = new Date();
-  date.setTime(proposal.submissionTime * 1000);
-  document.getElementById("submissionTime").value = clockformat(date);
+  document.getElementById("proposer").innerHTML = proposal.proposer;
+  document.getElementById("totalMembersBadge").innerHTML = proposal.totalMembers;
+  document.getElementById("totalInterestBadge").innerHTML = proposal.totalInterest;
+  document.getElementById("quorumBadge").innerHTML = proposal.quorumInPercentage + "%";
+  let currentDate = new Date();
+  let endSignupTime = new Date();
+  currentDate.setTime(proposal.submissionTime * 1000);
+  endSignupTime.setTime(proposal.endSignupTime * 1000);
+  document.getElementById("submissionTime").innerHTML = currentDate.toUTCString();
+  document.getElementById("electionTimeLabel").innerHTML = endSignupTime.toUTCString();
+
 }
 
+function showFooterPanel(proposerAddr, endSignupTime, startElectionExpiredTime) {
+  console.log("current state = " + currentState);
+  let currentTime = new Date();
+
+  if(currentState != "0") {
+    document.getElementById("successLabel").classList.remove('hidden');
+    if(currentTime.getTime() > endSignupTime* 1000 && currentTime.getTime() < startElectionExpiredTime * 1000) {
+      document.getElementById("startElectionBtn").disabled = false;
+      document.getElementById("startElectionBtn").classList.remove('hidden');
+      document.getElementById("resetElectionBtn").disabled = true;
+      document.getElementById("resetElectionBtn").classList.add('hidden');
+    } else if (currentTime.getTime() > startElectionExpiredTime * 1000) {
+      document.getElementById("proposalExpired").classList.remove('hidden');
+      document.getElementById("startElectionBtn").disabled = true;
+      document.getElementById("startElectionBtn").classList.add('hidden');
+      document.getElementById("resetElectionBtn").disabled = false;
+      document.getElementById("resetElectionBtn").classList.remove('hidden');
+    } else {
+      document.getElementById("resetElectionBtn").disabled = true;
+      document.getElementById("resetElectionBtn").classList.add('hidden');
+      document.getElementById("startElectionBtn").disabled = true;
+      document.getElementById("startElectionBtn").classList.remove('hidden');
+    }
+    if (typeof proposerAddr !== 'undefined') {
+      if(proposerAddr.toUpperCase() == accounts[0].toUpperCase()) {
+      document.getElementById("onlyForProposer").classList.remove('hidden');
+    }
+
+    }
+    document.getElementById("footer").classList.remove('hidden');
+  }
+}
+
+async function resetElection() {
+  let currentTime = new Date();
+  let endRefundTime = await electionCommissioner.methods.endRefundPhase().call() ;
+
+  let success = await electionCommissioner.methods.cancelProposal().call({ from: accounts[0], gas: 4200000});
+
+  if(success) {
+    electionCommissioner.methods.cancelProposal().send({from: accounts[0],gas: 4200000});
+  } else {
+
+    if(currentTime.getTime() < endRefundTime* 1000) {
+      alert("A new vote cannot be started until after " + (new Date(endRefundTime* 1000)));
+    } else {
+      let totaltorefund = await electionCommissioner.methods.totaltorefund().call();
+      let totalrefunded = await electionCommissioner.methods.totalrefunded().call();
+      alert("Could not restart election" + totaltorefund + " AND " + totalrefunded + " ");
+    }
+  }
+}
 function electionStage() {
   let proposal = getProposal();
 
   document.getElementById('status').innerHTML = " a ";
   document.getElementById("selectProposalBtn").disabled = true;
   document.getElementById("selectSignatureBtn").disabled = true;
-  document.getElementById("submitProposal").disabled = true;
-  document.getElementById("startElection").disabled = false;
-  document.getElementById("getDeposit").disabled = true;
-  populateForms(proposal);
-  document.getElementById("footer").show();
+  document.getElementById("submitProposalBtn").disabled = true;
+  document.getElementById("getDepositBtn").disabled = true;
+  proposal.then(prop => {
+    populateForms(prop);
+    showFooterPanel(prop.proposer, prop.endSignupTime, prop.startElectionExpiredTime);
+  });
 
 }
 
@@ -1077,12 +1274,12 @@ window.addEventListener('load', async () => {
     }
 });
 
-
 </script>
 <form id="proposal">
-  <h1>There is <span id="status"> no </span> proposal in progress</h1>
+  <div class="page-header"><h1>Election Commissioner Proposal</h1></div>
+  <h2>There is <span id="status"> no </span> proposal in progress</h2>
   <div class="form-group">
-    <label>Proposal Type </label><input type="radio" id="addMemberProposal" name="proposalType" value="0">Add New Member<input type="radio" id="removeMemberProposal" name="proposalType" value="1">Remove Existing Member
+    <label>Proposal Type </label><br/><input type="radio" id="addMemberProposal" name="proposalType" value="0" checked> Add New Member <input type="radio" id="removeMemberProposal" name="proposalType" value="1"> Remove Existing Member
   </div>
   <div class="form-group">
     <label>Load Proposal</label><input id ="selectProposalBtn" type="file" onChange="openProposalFile(event);" disabled>
@@ -1108,14 +1305,25 @@ window.addEventListener('load', async () => {
     <textarea class="form-control" id="signature" rows="12" readonly></textarea>
     <label class="form-control-sm">Load Signature<input type="file" id="selectSignatureBtn" onChange="openSignatureFile(event);" disabled></label>
   </div>
-  <div class="form-group">
-    <div id="footer"><span id="proposer"></span> <span id="submissionTime"></span></div>
-  </div>
-  <div class="form-group">
-    <button id="submitProposal" type="button" class="btn btn-primary" onclick="sendProposal();" disabled>Submit</button> &#8594;
-    <button id="startElection" type="button" class="btn btn-primary" onclick="" disabled>Start Election</button> &#8594;
-    <button id="getDeposit" type="button" class="btn btn-primary" onclick="" disabled>Get Deposit</button>
-  </div>
 </form>
+<div class="panel panel-default">
+    <div class="panel-body hidden" id="footer">
+      <p class="bg-success hidden" id="successLabel"><label>Proposed By:</label><span id="proposer"></span> <label>At:</label><span id="submissionTime"></span></p>
+      <p class="bg-warning hidden" id="onlyForProposer">You need start the election after <b id="electionTimeLabel"> </b> if number of interest exceeds the quorum</p>
+      <p class="bg-danger hidden" id="proposalExpired">This proposal has expired</p>
+      <span class="label label-primary" id="totalMembersLabel">Total members:<span class="badge" id ="totalMembersBadge"></span></span>
+      <span class="label label-primary" id="totalInterestLabel">Total interest:<span class="badge" id ="totalInterestBadge"></span></span>
+      <span class="label label-primary" id="quorumLabel">Quorum:<span class="badge" id ="quorumBadge"></span></span>
+    </div>
+      <div class="panel-footer">
+        <button id="submitProposalBtn" type="button" class="btn btn-primary" onclick="sendProposal();" disabled>Submit</button> &#8594;
+        <button id="startElectionBtn" type="button" class="btn btn-primary" onclick="beginElection();" disabled>Start Election</button>
+        <button id="resetElectionBtn" type="button" class="btn btn-danger hidden" onclick="resetElection();" disabled>Reset Election</button>&#8594;
+        <button id="getDepositBtn" type="button" class="btn btn-primary" onclick="" disabled>Get Deposit</button>
+      </div>
+  </div>
+
+
+
 </body>
 </html>

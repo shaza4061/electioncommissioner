@@ -11,28 +11,28 @@ import "./AsnScRegistry.sol";
  */
 contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B08cA16Cc1f2b1) {
 
+  enum ProposalType { ADD_MEMBER, REMOVE_MEMBER }
   struct Proposal {
-    ProposalType type;
+    ProposalType proposalType;
     uint asn;
     bytes32[] ip;
     address scAddress;
     address votingAddress;
     string proposalHash;
-    string proposer;
+    address proposer;
     uint deposit;
     uint submissionTime;
   }
 
   AsnScRegistry registry; //Registry address
-  uint finishSignupPhaseDuration;
-  uint endSignupPhaseDuration;
-  uint endCommitmentPhaseDuration;
-  uint endVotingPhaseDuration;
-  uint endRefundPhaseDuration;
-  uint depositRequired;
+  uint private finishSignupPhaseDuration;
+  uint private endSignupPhaseDuration;
+  uint private endCommitmentPhaseDuration;
+  uint private endVotingPhaseDuration;
+  uint private endRefundPhaseDuration;
+  uint private depositRequired;
+  uint private quorumInPercentage;
   Proposal private currentProposal;
-
-  enum ProposalType { ADD_MEMBER, REMOVE_MEMBER }
 
   constructor(
       address _registryAddress,
@@ -41,7 +41,8 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
       uint _endCommitmentPhaseDuration,
       uint _endVotingPhaseDuration,
       uint _endRefundPhase,
-      uint _depositRequired
+      uint _depositRequired,
+      uint _quorumInPercentage
       ) {
     registry = AsnScRegistry(_registryAddress);
     finishSignupPhaseDuration = _finishSignupPhaseDuration;
@@ -50,6 +51,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     endVotingPhaseDuration = _endVotingPhaseDuration;
     endRefundPhase = _endRefundPhase;
     depositRequired = _depositRequired;
+    quorumInPercentage = _quorumInPercentage;
   }
 
   modifier isMember() {
@@ -58,21 +60,26 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
   }
 
   modifier isProposer() {
-  require(msg.sender = currentProposal.proposer, "Only proposer can perform action");
-  _;
+    require(msg.sender == currentProposal.proposer, "Only proposer can perform action");
+    _;
   }
 
-  function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime) public isMember payable {
+  function registerEligibleVoters() private {
+    address[] memory voters = registry.getAllMembersVotingAddresses();
+    setEligible(voters);
+  }
+  event DebugEvent0(string msg);
+  function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime) public isMember payable returns (bool){
+    emit DebugEvent0("DebugEvent0:submitProposal");
     // Require Proposer to deposit ether
     require(msg.value == depositRequired,  "Deposit sent is not equal to deposit required");
 
     //set eligible Voters
-    address[] memory voters = registry.getAllMembersVotingAddresses();
-    setEligible(voters);
+    registerEligibleVoters();
 
     //save the Proposal
     currentProposal = Proposal({
-                        type: _proposalType,
+                        proposalType:_proposalType,
                         asn:_asn,
                         ip:_ip,
                         scAddress:_scAddress,
@@ -88,16 +95,60 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     uint ecEndCommitmentPhase = ecEndSignupPhase + endCommitmentPhaseDuration;
     uint ecEndVotingPhase = ecEndCommitmentPhase + endVotingPhaseDuration;
     uint ecEndRefundPhase = ecEndVotingPhase + endRefundPhase;
+    string memory proposalTypeStr;
 
-    beginSignUp("Add member", true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndRefundPhase, depositRequired);
+    require(ecFinishSignupPhase > 0 + gap, "ecFinishSignupPhase must be more than 0 + gap");
+    require(addresses.length >= 3, "addresses must be more than 3");
+    require(depositRequired >= 0, "depositrequired must not be 0");
+
+    if(_proposalType == ProposalType.ADD_MEMBER) {
+      proposalTypeStr = "Add member";
+    } else if (_proposalType == ProposalType.REMOVE_MEMBER) {
+      proposalTypeStr = "Remove member";
+    } else {
+      revert("Unrecognized proposal type");
+    }
+    emit DebugEvent0("DebugEvent0:submitted");
+    return beginSignUp(proposalTypeStr, true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndRefundPhase, depositRequired);
   }
 
-  function getProposal() view public returns(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, string _proposer) {
-    return(currentProposal.type, currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress, currentProposal.proposalHash, currentProposal.submissionTime, currentProposal.proposer);
+  function getProposal() view public returns(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, address _proposer) {
+    return(currentProposal.proposalType, currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress, currentProposal.proposalHash, currentProposal.submissionTime, currentProposal.proposer);
+  }
+
+  function startElection() public returns(bool){
+    uint totalInterestInPercentage = totalregistered/totaleligible*100;
+    bool success = false;
+    //if (totalInterestInPercentage > quorumInPercentage) {
+    //  success = finishRegistrationPhase();
+    //}
+    return success;
+  }
+
+  function submitVote(uint[4] params, uint[2] y, uint[2] a1, uint[2] b1, uint[2] a2, uint[2] b2) inState(State.VOTE) returns (bool) {
+    bool successful = submitVoteInternal(params, y, a1, b1, a2, b2);
+    if (successful && totalvoted == totalregistered) {
+      //tallyVote
+      computeTally();
+    }
+    return successful;
+  }
+
+  function getQuorumInPercentage() view public returns(uint _quorumInPercentage) {
+    return quorumInPercentage;
+  }
+
+  function cancelProposal() public returns(bool) {
+    bool success = deadlinePassed();
+    if(success) {
+      delete currentProposal;
+      return true;
+    }
+    return false;
   }
 
   function getDeposit() public isProposer inState(State.FINISHED) {
-    if (msg.sender.send(refund)) {
+    if (msg.sender.send(currentProposal.deposit)) {
       //refunds successful
        delete currentProposal;
     } else {

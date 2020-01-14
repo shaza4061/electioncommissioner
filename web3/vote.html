@@ -240,15 +240,6 @@
       {
         "constant": false,
         "inputs": [],
-        "name": "computeTally",
-        "outputs": [],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "constant": false,
-        "inputs": [],
         "name": "withdrawRefund",
         "outputs": [],
         "payable": false,
@@ -426,45 +417,6 @@
         "constant": false,
         "inputs": [],
         "name": "finishRegistrationPhase",
-        "outputs": [
-          {
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "constant": false,
-        "inputs": [
-          {
-            "name": "params",
-            "type": "uint256[4]"
-          },
-          {
-            "name": "y",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "a1",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "b1",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "a2",
-            "type": "uint256[2]"
-          },
-          {
-            "name": "b2",
-            "type": "uint256[2]"
-          }
-        ],
-        "name": "submitVote",
         "outputs": [
           {
             "name": "",
@@ -896,7 +848,11 @@
             "type": "uint256"
           },
           {
-            "name": "_deposit",
+            "name": "_depositRequired",
+            "type": "uint256"
+          },
+          {
+            "name": "_quorumInPercentage",
             "type": "uint256"
           }
         ],
@@ -906,20 +862,14 @@
       },
       {
         "anonymous": false,
-        "inputs": [],
-        "name": "EventProposalSubmitted",
-        "type": "event"
-      },
-      {
-        "anonymous": false,
         "inputs": [
           {
             "indexed": false,
-            "name": "",
+            "name": "msg",
             "type": "string"
           }
         ],
-        "name": "EventDebug",
+        "name": "DebugEvent0",
         "type": "event"
       },
       {
@@ -927,16 +877,20 @@
         "inputs": [
           {
             "indexed": false,
-            "name": "",
-            "type": "uint256"
+            "name": "msg",
+            "type": "string"
           }
         ],
-        "name": "EventDebugInt",
+        "name": "DebugEvent",
         "type": "event"
       },
       {
         "constant": false,
         "inputs": [
+          {
+            "name": "_proposalType",
+            "type": "uint8"
+          },
           {
             "name": "_asn",
             "type": "uint256"
@@ -963,7 +917,12 @@
           }
         ],
         "name": "submitProposal",
-        "outputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
         "payable": true,
         "stateMutability": "payable",
         "type": "function"
@@ -973,6 +932,10 @@
         "inputs": [],
         "name": "getProposal",
         "outputs": [
+          {
+            "name": "_proposalType",
+            "type": "uint8"
+          },
           {
             "name": "_asn",
             "type": "uint256"
@@ -996,10 +959,104 @@
           {
             "name": "_submissionTime",
             "type": "uint256"
+          },
+          {
+            "name": "_proposer",
+            "type": "address"
           }
         ],
         "payable": false,
         "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "startElection",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "params",
+            "type": "uint256[4]"
+          },
+          {
+            "name": "y",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b1",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "a2",
+            "type": "uint256[2]"
+          },
+          {
+            "name": "b2",
+            "type": "uint256[2]"
+          }
+        ],
+        "name": "submitVote",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "getQuorumInPercentage",
+        "outputs": [
+          {
+            "name": "_quorumInPercentage",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "cancelProposal",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [],
+        "name": "getDeposit",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
         "type": "function"
       }
     ];
@@ -1637,13 +1694,13 @@
       return false;
     }
 
-    function claimrefund() {
+    async function claimrefund() {
 
-      web3.personal.unlockAccount(addr, password);
-      var res = anonymousvotingAddr.withdrawRefund.call({ from: web3.eth.accounts[accounts_index], gas: 4200000});
+      web3.eth.personal.unlockAccount(addr, password);
+      var res = await anonymousvotingAddr.methods.withdrawRefund().call({ from: addr, gas: 4200000});
 
       if(res) {
-        anonymousvotingAddr.withdrawRefund.sendTransaction({from: web3.eth.accounts[accounts_index],gas: 4200000});
+        await anonymousvotingAddr.methods.withdrawRefund().send({from: addr,gas: 4200000});
         document.getElementById('claimrefundbutton').setAttribute("hidden", true);
         document.getElementById("waitingforrefund").removeAttribute("hidden");
       }
@@ -2142,7 +2199,8 @@
             // Did everyone vote? Did we have voters registered?
             const totalregistered = await anonymousvotingAddr.methods.totalregistered().call();
             const totalvoted = await anonymousvotingAddr.methods.totalvoted().call();
-            if((totalregistered.eq(totalvoted)) && !totalregistered.eq(new BigNumber("0"))) {
+            const zero = new BigNumber("0");
+            if((totalregistered==totalvoted) && !zero.eq(totalregistered)) {
               var yes = await anonymousvotingAddr.methods.finaltally(0).call();
               var total = await anonymousvotingAddr.methods.finaltally(1).call();
               var no = total - yes;
@@ -2155,6 +2213,7 @@
             const hasRefund = await anonymousvotingAddr.methods.refunds(addr).call();
             if(hasRefund  > 0) {
               const endRefundPhase = await anonymousvotingAddr.methods.endRefundPhase().call();
+              depositrequired = await anonymousvotingAddr.methods.depositrequired().call();
               document.getElementById("refund-notvalid").setAttribute("hidden", true);
               document.getElementById("refund-valid").removeAttribute("hidden");
               document.getElementById("refund").innerHTML = web3.utils.fromWei(depositrequired, "ether");
