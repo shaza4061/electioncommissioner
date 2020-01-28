@@ -298,6 +298,20 @@
         "type": "function"
       },
       {
+        "constant": false,
+        "inputs": [],
+        "name": "finishRegistrationPhase",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
         "constant": true,
         "inputs": [],
         "name": "gap",
@@ -731,6 +745,30 @@
         "type": "constructor"
       },
       {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "name": "msg",
+            "type": "string"
+          }
+        ],
+        "name": "DebugEvent0",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "name": "msg",
+            "type": "string"
+          }
+        ],
+        "name": "DebugEvent",
+        "type": "event"
+      },
+      {
         "constant": false,
         "inputs": [
           {
@@ -903,6 +941,25 @@
         "outputs": [],
         "payable": false,
         "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "voter",
+            "type": "address"
+          }
+        ],
+        "name": "isRegisteredVoter",
+        "outputs": [
+          {
+            "name": "_isRegistered",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
         "type": "function"
       }
     ];

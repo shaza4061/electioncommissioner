@@ -21,11 +21,10 @@ if (typeof web3 !== 'undefined') {
        console.log("web3.currentProvider");
    } else {
        // set the provider you want from Web3.providers
-       web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
-       console.log("http://localhost:8545");
+       web3 = new Web3(new Web3.providers.WebsocketProvider("ws://localhost:8545"));
+       console.log("Using web socket: http://localhost:8545");
    }
-   var accounts = web3.eth.getAccounts();
-   //web3.eth.defaultAccount = accounts[0];
+var accounts;
 var abi = [
   {
     "constant": true,
@@ -247,20 +246,6 @@ var abi = [
     ],
     "payable": false,
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [],
-    "name": "finishRegistrationPhase",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -550,6 +535,25 @@ var abi = [
     "constant": true,
     "inputs": [
       {
+        "name": "voter",
+        "type": "address"
+      }
+    ],
+    "name": "isRegisteredVoter",
+    "outputs": [
+      {
+        "name": "_isRegistered",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
         "name": "",
         "type": "uint256"
       }
@@ -705,18 +709,6 @@ var abi = [
         "type": "string"
       }
     ],
-    "name": "DebugEvent0",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "name": "msg",
-        "type": "string"
-      }
-    ],
     "name": "DebugEvent",
     "type": "event"
   },
@@ -750,6 +742,10 @@ var abi = [
       {
         "name": "_submissionTime",
         "type": "uint256"
+      },
+      {
+        "name": "_rawProposal",
+        "type": "string"
       }
     ],
     "name": "submitProposal",
@@ -799,6 +795,10 @@ var abi = [
       {
         "name": "_proposer",
         "type": "address"
+      },
+      {
+        "name": "_rawProposal",
+        "type": "string"
       }
     ],
     "payable": false,
@@ -902,6 +902,8 @@ var electionCommissioner = new web3.eth.Contract(abi,"0xDC7a20473Df6EE6DCB56B252
 var managedIpString;
 var accounts;
 var currentState;
+var currentAccount;
+var rawProposalText;
 
 electionCommissioner.events.DebugEvent({
   fromBlock: 'latest',
@@ -914,13 +916,16 @@ electionCommissioner.events.DebugEvent({
   }
 });
 
+electionCommissioner.events.allEvents({ fromBlock:'latest' }, function(error, result) {
+    console.log(result);
+});
+
 var openSignatureFile = function(event) {
     var input = event.target;
     var reader = new FileReader();
     reader.onload = function() {
       document.getElementById('signature').innerHTML = reader.result;
     }
-
     reader.readAsText(input.files[0]);
 };
 
@@ -928,11 +933,13 @@ var openProposalFile = function(event) {
     var input = event.target;
     var reader = new FileReader();
     reader.onload = function() {
-      let rawText = reader.result.split("|");
-      let asn = rawText[0];
-       managedIpString = rawText[1];
-      let scAddress = rawText[2];
-      let votingAddress = rawText[3];
+      rawProposalText = reader.result;
+      let rawText = rawProposalText.split("|");
+      let proposalType = rawText[0];
+      let asn = rawText[1];
+       managedIpString = rawText[2];
+      let scAddress = rawText[3];
+      let votingAddress = rawText[4];
       let managedIp = managedIpString.split(',');
 
       document.getElementById('asn').value = asn;
@@ -945,7 +952,6 @@ var openProposalFile = function(event) {
         ul.appendChild(li);
       }
     }
-
     reader.readAsText(input.files[0]);
 };
 
@@ -955,25 +961,17 @@ async function beginElection() {
   let currentBlock = await web3.eth.getBlock("latest");
   let blocktimestamp = currentBlock.timestamp;
   console.log("endSignupDateTime = "+ endSignupDateTime +", blocktimestamp = " + blocktimestamp);
-  let overrides = {
 
-    // The address to execute the call as
-    from: "0x74A021dE8bd500b26333a05e96761fe323ec57ba",
-
-    // The maximum units of gas for the transaction to use
-    gasLimit: 4200000,
-
-}
-
-  let success = await electionCommissioner.methods.finishRegistrationPhase().call(overrides);
+  let success = await electionCommissioner.methods.startElection().call({from: currentAccount,gas: 4200000});
   if(success) {
-    await electionCommissioner.methods.finishRegistrationPhase().send({from: accounts[0],gas: 4200000});
+    await electionCommissioner.methods.startElection().send({from: currentAccount,gas: 4200000});
   } else {
     alert("Problem submitting this proposal");
   }
 }
 
 async function sendProposal () {
+  openWallet();
   let managedIps = [];
   let ul = document.getElementById("managedIp");
   let items = ul.getElementsByTagName("li");
@@ -981,57 +979,49 @@ async function sendProposal () {
     managedIps.push(web3.utils.asciiToHex(items[i].innerText));
   }
 
-if (window.ethereum) {
-        window.web3 = new Web3(ethereum);
-        const dateInSeconds = Math.round((new Date).getTime() / 1000);
-        let success =  await electionCommissioner.methods.submitProposal(
-          document.querySelector("#proposal input[name='proposalType']:checked").value,
-          document.getElementById('asn').value,
-          managedIps,
-          document.getElementById('scAddress').value,
-          document.getElementById('votingAddress').value,
-          document.getElementById('signature').innerHTML,
-          dateInSeconds
-        ).call({from: accounts[0],gas: 4200000, value: 1000000000000000000 });
+  const dateInSeconds = Math.round((new Date).getTime() / 1000);
+  let success =  await electionCommissioner.methods.submitProposal(
+    document.querySelector("#proposal input[name='proposalType']:checked").value,
+    document.getElementById('asn').value,
+    managedIps,
+    document.getElementById('scAddress').value,
+    document.getElementById('votingAddress').value,
+    document.getElementById('signature').innerHTML,
+    dateInSeconds,
+    rawProposalText
+  ).call({from: currentAccount,gas: 4200000, value: 1000000000000000000 });
 
-        if (success) {
-          try {
-            await electionCommissioner.methods.submitProposal(
-              document.querySelector("#proposal input[name='proposalType']:checked").value,
-              document.getElementById('asn').value,
-              managedIps,
-              document.getElementById('scAddress').value,
-              document.getElementById('votingAddress').value,
-              document.getElementById('signature').innerHTML,
-              dateInSeconds
-            ).send({from: accounts[0],gas: 4200000, value: 1000000000000000000 });
-          } catch (error) {
-              // User denied account access...
-              console.error('User denied account access. [Error]:' + error);
-          }
-          checkStatus();
-        } else {
-          alert("There is a problem submitting this proposal.");
-        }
+  if (success) {
+    try {
+      await electionCommissioner.methods.submitProposal(
+        document.querySelector("#proposal input[name='proposalType']:checked").value,
+        document.getElementById('asn').value,
+        managedIps,
+        document.getElementById('scAddress').value,
+        document.getElementById('votingAddress').value,
+        document.getElementById('signature').innerHTML,
+        dateInSeconds,
+        rawProposalText
+      ).send({from: currentAccount,gas: 4200000, value: 1000000000000000000 });
+    } catch (error) {
+        // User denied account access...
+        console.error('User denied account access. [Error]:' + error);
+    }
+    checkStatus();
+  } else {
+    alert("There is a problem submitting this proposal.");
+  }
 
-    }
-    // Legacy dapp browsers...
-    else if (window.web3) {
-        window.web3 = new Web3(web3.currentProvider);
-        // Acccounts always exposed
-        console.log('Legacy dapp browsers...');
-    }
-    // Non-dapp browsers...
-    else {
-        console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
-    }
-
-};
+  }
 
 async function checkStatus() {
   let currentTime = new Date();
   let endRefundTime = await electionCommissioner.methods.endRefundPhase().call();
-  console.log("currentTime = " + currentTime + ", endRefundTime = "+ (new Date(endRefundTime* 1000)));
+  let finishSignupPhase = await electionCommissioner.methods.finishSignupPhase().call();
+  let endSignupPhase = await electionCommissioner.methods.endSignupPhase().call();
+  let currentBlock = await web3.eth.getBlock("latest");
+  let blocktimestamp = currentBlock.timestamp;
+  console.log("currentTime = " + currentTime + ", blocktimestamp = " +  (new Date(blocktimestamp* 1000)) +", endRefundTime = "+ (new Date(endRefundTime* 1000)) + ", finishSignupPhase = " + (new Date(finishSignupPhase* 1000)) + ", endSignupPhase = " + (new Date(endSignupPhase* 1000)));
   electionCommissioner.methods.state().call().then(state => {
     currentState = state;
     switch(state) {
@@ -1137,10 +1127,11 @@ async function getProposal() {
     endSignupTime: endSignupDateTime,
     startElectionExpiredTime: startElectionExpiredDateTime
   }
+  rawProposalText = rawProposal[8];
   return proposal;
 }
 
-function populateForms(proposal) {
+async function populateForms(proposal) {
   switch(proposal.type) {
     case "0": document.getElementById('addMemberProposal').checked = true;
             break;
@@ -1171,7 +1162,8 @@ function populateForms(proposal) {
   endSignupTime.setTime(proposal.endSignupTime * 1000);
   document.getElementById("submissionTime").innerHTML = currentDate.toUTCString();
   document.getElementById("electionTimeLabel").innerHTML = endSignupTime.toUTCString();
-
+  generateDownloadProposalLink(rawProposalText);
+  generateDownloadSignatureLink(proposal.proposalHash);
 }
 
 function showFooterPanel(proposerAddr, endSignupTime, startElectionExpiredTime) {
@@ -1198,7 +1190,7 @@ function showFooterPanel(proposerAddr, endSignupTime, startElectionExpiredTime) 
       document.getElementById("startElectionBtn").classList.remove('hidden');
     }
     if (typeof proposerAddr !== 'undefined') {
-      if(proposerAddr.toUpperCase() == accounts[0].toUpperCase()) {
+      if(proposerAddr.toUpperCase() == currentAccount.toUpperCase()) {
       document.getElementById("onlyForProposer").classList.remove('hidden');
     }
 
@@ -1211,10 +1203,10 @@ async function resetElection() {
   let currentTime = new Date();
   let endRefundTime = await electionCommissioner.methods.endRefundPhase().call() ;
 
-  let success = await electionCommissioner.methods.cancelProposal().call({ from: accounts[0], gas: 4200000});
+  let success = await electionCommissioner.methods.cancelProposal().call({ from: currentAccount, gas: 4200000});
 
   if(success) {
-    electionCommissioner.methods.cancelProposal().send({from: accounts[0],gas: 4200000});
+    await electionCommissioner.methods.cancelProposal().send({from: currentAccount,gas: 4200000});
   } else {
 
     if(currentTime.getTime() < endRefundTime* 1000) {
@@ -1238,14 +1230,53 @@ function electionStage() {
     populateForms(prop);
     showFooterPanel(prop.proposer, prop.endSignupTime, prop.startElectionExpiredTime);
   });
-
 }
 
-$(document).ready(function () {
+function openWallet() {
+  currentAccount = $("#ethAcct" ).val();
+  let password = $("#ethAcctPwd" ).val();
+  web3.eth.personal.unlockAccount(currentAccount, password,0).then(console.log('Account unlocked!'));
+}
+
+ function populateAccountForm(acct) {
+  let options = '';
+  for (let i = 0; i< acct.length; i++) {
+    options += '<option value="'+ accounts[i] + '">' + accounts[i] + '</option>';
+  }
+  $('#ethAcct').append(options);
+}
+
+$(document).ready(async function () {
   setInterval("checkStatus()", 5000);
   checkStatus();
+  accounts = await web3.eth.getAccounts();
+  populateAccountForm(accounts);
+  document.getElementById("unlockAccount").addEventListener("click", function(){
+    let action = $(this).attr('data-text');
+    switch(action) {
+      case 'submitProposal':
+        sendProposal();
+        break;
+      case 'startElection' :
+        beginElection();
+        break;
+      case 'resetElection':
+        resetElection();
+        break;
+      case 'getDeposit':
+
+    }
+  });
 });
 
+function generateDownloadProposalLink( proposalString) {
+  document.getElementById("downloadProposalLink").href="data:application/octet-stream;charset=utf-8;base64," + window.btoa(proposalString);
+  document.getElementById("downloadProposalLink").innerHTML = "Download proposal";
+}
+function generateDownloadSignatureLink( signatureString) {
+  document.getElementById("downloadSignatureLink").href="data:application/octet-stream;charset=utf-8;base64," + window.btoa(signatureString);
+  document.getElementById("downloadSignatureLink").innerHTML = "Download signature";
+}
 window.addEventListener('load', async () => {
     // Modern dapp browsers...
     if (window.ethereum) {
@@ -1266,13 +1297,14 @@ window.addEventListener('load', async () => {
     else if (window.web3) {
         window.web3 = new Web3(web3.currentProvider);
         // Acccounts always exposed
-        web3.eth.sendTransaction({/* ... */});
+        console.log("Legacy dapp browsers..");
     }
     // Non-dapp browsers...
     else {
         console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
     }
 });
+
 
 </script>
 <form id="proposal">
@@ -1301,9 +1333,15 @@ window.addEventListener('load', async () => {
     <input id="votingAddress" readonly>
   </div>
   <div class="form-group">
+    <a id="downloadProposalLink" download="proposal.txt" href=""></a>
+  </div>
+  <div class="form-group">
     <label for="exampleFormControlTextarea1">Signature</label>
     <textarea class="form-control" id="signature" rows="12" readonly></textarea>
     <label class="form-control-sm">Load Signature<input type="file" id="selectSignatureBtn" onChange="openSignatureFile(event);" disabled></label>
+  </div>
+  <div class="form-group">
+    <a id="downloadSignatureLink" download="signature.asc" href=""></a>
   </div>
 </form>
 <div class="panel panel-default">
@@ -1316,14 +1354,36 @@ window.addEventListener('load', async () => {
       <span class="label label-primary" id="quorumLabel">Quorum:<span class="badge" id ="quorumBadge"></span></span>
     </div>
       <div class="panel-footer">
-        <button id="submitProposalBtn" type="button" class="btn btn-primary" onclick="sendProposal();" disabled>Submit</button> &#8594;
-        <button id="startElectionBtn" type="button" class="btn btn-primary" onclick="beginElection();" disabled>Start Election</button>
-        <button id="resetElectionBtn" type="button" class="btn btn-danger hidden" onclick="resetElection();" disabled>Reset Election</button>&#8594;
-        <button id="getDepositBtn" type="button" class="btn btn-primary" onclick="" disabled>Get Deposit</button>
+        <button id="submitProposalBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','submitProposal')"  disabled>Submit</button> &#8594;
+        <button id="startElectionBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','startElection')"  disabled>Start Election</button>
+        <button id="resetElectionBtn" type="button" class="btn btn-danger hidden" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','resetElection')" disabled>Reset Election</button>&#8594;
+        <button id="getDepositBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','getDeposit')"  disabled>Get Deposit</button>
       </div>
   </div>
 
-
+  <!-- Modal HTML -->
+  <div class="bs-example">
+    <div id="unlockAccountForm" class="modal fade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Unlock Ethereum Account</h5>
+                </div>
+                <div class="modal-body">
+                    <label for="ethAcct">Select accounts:</label>
+                    <select class="form-control" id="ethAcct">
+                    </select>
+                    <label for="pwd">Password:</label>
+                    <input type="password" class="form-control" id="ethAcctPwd">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" id="unlockAccount" class="btn btn-primary" data-dismiss="modal" data-text="">Unlock</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

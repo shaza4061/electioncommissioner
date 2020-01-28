@@ -799,8 +799,9 @@ contract AnonymousVoting is owned {
 
   event DebugEvent(string msg);
   // Timer has expired - we want to start computing the reconstructed keys
-  function finishRegistrationPhase() inState(State.SIGNUP) public returns(bool) {
-      require(totalregistered > 3, "totalregistered < 3");
+  function finishRegistrationPhase() inState(State.SIGNUP) internal returns(bool) {
+      require(totalregistered >= 3, "totalregistered < 3");
+      require(block.timestamp > finishSignupPhase, "block.timestamp < finishSignupPhase");
       require(block.timestamp < endSignupPhase, "block.timestamp > endSignupPhase");
       emit DebugEvent("before checking");
       // Make sure at least 3 people have signed up...
@@ -896,6 +897,7 @@ contract AnonymousVoting is owned {
       } else {
         state = State.VOTE;
       }
+      return true;
   }
 
   /*
@@ -1268,5 +1270,9 @@ contract AnonymousVoting is owned {
       }
 
       return true;
+    }
+
+    function isRegisteredVoter(address voter) view public returns(bool _isRegistered) {
+      return registered[voter];
     }
 }

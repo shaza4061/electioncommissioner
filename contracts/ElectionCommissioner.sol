@@ -33,6 +33,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
   uint private depositRequired;
   uint private quorumInPercentage;
   Proposal private currentProposal;
+  string private rawProposal;
 
   constructor(
       address _registryAddress,
@@ -68,9 +69,8 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     address[] memory voters = registry.getAllMembersVotingAddresses();
     setEligible(voters);
   }
-  event DebugEvent0(string msg);
-  function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime) public isMember payable returns (bool){
-    emit DebugEvent0("DebugEvent0:submitProposal");
+
+  function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, string _rawProposal) public isMember payable returns (bool){
     // Require Proposer to deposit ether
     require(msg.value == depositRequired,  "Deposit sent is not equal to deposit required");
 
@@ -94,7 +94,8 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     uint ecEndSignupPhase = ecFinishSignupPhase + endSignupPhaseDuration;
     uint ecEndCommitmentPhase = ecEndSignupPhase + endCommitmentPhaseDuration;
     uint ecEndVotingPhase = ecEndCommitmentPhase + endVotingPhaseDuration;
-    uint ecEndRefundPhase = ecEndVotingPhase + endRefundPhase;
+    //uint ecEndRefundPhase = ecEndVotingPhase + endRefundPhase; //stack too deep. max number of variable reached
+    rawProposal = _rawProposal;
     string memory proposalTypeStr;
 
     require(ecFinishSignupPhase > 0 + gap, "ecFinishSignupPhase must be more than 0 + gap");
@@ -108,20 +109,19 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     } else {
       revert("Unrecognized proposal type");
     }
-    emit DebugEvent0("DebugEvent0:submitted");
-    return beginSignUp(proposalTypeStr, true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndRefundPhase, depositRequired);
+    return beginSignUp(proposalTypeStr, true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndVotingPhase + endRefundPhase, depositRequired);
   }
 
-  function getProposal() view public returns(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, address _proposer) {
-    return(currentProposal.proposalType, currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress, currentProposal.proposalHash, currentProposal.submissionTime, currentProposal.proposer);
+  function getProposal() view public returns(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, address _proposer, string _rawProposal) {
+    return(currentProposal.proposalType, currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress, currentProposal.proposalHash, currentProposal.submissionTime, currentProposal.proposer, rawProposal);
   }
 
   function startElection() public returns(bool){
     uint totalInterestInPercentage = totalregistered/totaleligible*100;
     bool success = false;
-    //if (totalInterestInPercentage > quorumInPercentage) {
-    //  success = finishRegistrationPhase();
-    //}
+    if (totalInterestInPercentage > quorumInPercentage) {
+      success = finishRegistrationPhase();
+    }
     return success;
   }
 
@@ -130,6 +130,12 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     if (successful && totalvoted == totalregistered) {
       //tallyVote
       computeTally();
+      uint yes = finaltally[0];
+      uint no = finaltally[1]-finaltally[0];
+
+      if(yes > no) {
+        successful = executeProposal();
+      }
     }
     return successful;
   }
@@ -142,6 +148,8 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     bool success = deadlinePassed();
     if(success) {
       delete currentProposal;
+      delete rawProposal;
+      state = State.SETUP;
       return true;
     }
     return false;
@@ -155,5 +163,19 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
       revert("Refund not successful");
     }
   }
+
+  function executeProposal() internal returns(bool) {
+    if(currentProposal.proposalType == ProposalType.ADD_MEMBER) {
+      registry.addMember(currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress);
+    } else if (currentProposal.proposalType == ProposalType.REMOVE_MEMBER) {
+      registry.removeMember(currentProposal.asn);
+    } else {
+      revert("Unrecognized proposal type");
+    }
+
+    return true;
+  }
+
+
 
 }

@@ -363,7 +363,7 @@ library Secp256k1_noconflict {
                 jump(loop)
             loop_end:
         }
-        
+
         dwPtr = dwPtr;
 
         // Pre calculation

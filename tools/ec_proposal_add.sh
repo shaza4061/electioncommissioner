@@ -9,4 +9,4 @@ read _scAddress
 echo "Enter your voting address:"
 read _votingAddress
 
-echo $_asn"|"$_ipRange"|"$_scAddress"|"$_votingAddress > $_asn.txt
+echo "ADD|"$_asn"|"$_ipRange"|"$_scAddress"|"$_votingAddress > $_votingAddress.txt

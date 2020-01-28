@@ -55,6 +55,8 @@
                 <p id="registerwait">Please wait.... Registration will begin soon.</p>
                 <div hidden id="registerready">
                    <h2 id="question3"></h2>
+                   <div class="form-group" id="proposal" align="left">
+                   </div>
                    <br>
                    <p>You have <span id="balance"></span> ether.</p>
                    <br>
@@ -169,11 +171,11 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="js/jquery.min.js"></script>
     <!-- jQuery easing plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js" type="text/javascript"></script>
+    <script src="js/jquery.easing.min.js" type="text/javascript"></script>
     <!-- <script src="js/bootstrap.min.js"></script>-->
-    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+    <script src="web3.min.js"></script>
     <script src="bignumber.min.js"></script>
     <script>
     /*
@@ -411,20 +413,6 @@
         ],
         "payable": false,
         "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "constant": false,
-        "inputs": [],
-        "name": "finishRegistrationPhase",
-        "outputs": [
-          {
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
         "type": "function"
       },
       {
@@ -714,6 +702,25 @@
         "constant": true,
         "inputs": [
           {
+            "name": "voter",
+            "type": "address"
+          }
+        ],
+        "name": "isRegisteredVoter",
+        "outputs": [
+          {
+            "name": "_isRegistered",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
             "name": "",
             "type": "uint256"
           }
@@ -869,18 +876,6 @@
             "type": "string"
           }
         ],
-        "name": "DebugEvent0",
-        "type": "event"
-      },
-      {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": false,
-            "name": "msg",
-            "type": "string"
-          }
-        ],
         "name": "DebugEvent",
         "type": "event"
       },
@@ -914,6 +909,10 @@
           {
             "name": "_submissionTime",
             "type": "uint256"
+          },
+          {
+            "name": "_rawProposal",
+            "type": "string"
           }
         ],
         "name": "submitProposal",
@@ -963,6 +962,10 @@
           {
             "name": "_proposer",
             "type": "address"
+          },
+          {
+            "name": "_rawProposal",
+            "type": "string"
           }
         ],
         "payable": false,
@@ -1060,7 +1063,8 @@
         "type": "function"
       }
     ];
-    var anonymousvotingAddr = new web3.eth.Contract(abi,"0xDC7a20473Df6EE6DCB56B2522aFbed8097e7D9b3");
+    var anonymousvoting = web3.eth.contract(abi);
+    var anonymousvotingAddr = anonymousvoting.at("0xDC7a20473Df6EE6DCB56B2522aFbed8097e7D9b3");
 
     // Local Crypto Contract
     var abi_crypto = [
@@ -1625,58 +1629,42 @@
         "type": "function"
       }
     ];
-    var cryptoAddr = new web3.eth.Contract(abi_crypto,"0x771FC6Afd2f14Fc8fbf2a913a44b63af804E594A");
+    var crypto_contract = web3.eth.contract(abi_crypto);
+    var cryptoAddr = crypto_contract.at("0x771FC6Afd2f14Fc8fbf2a913a44b63af804E594A");
 
     // Fetch all the Ethereum addresses...
     function selectBox() {
-    (async () => {
-      const accounts = await web3.eth.getAccounts();
-      // Only run if user has not yet chosen an Ethereum address.
-      if (!addressChosen) {
-          var listEligible = "";
-          var foundEligible = false;
-          var isEligiblePromises = [];
-          // Let user select one of their Ethereum addresses
-          for (var i = 0; i < accounts.length; i++) {
-              var tempaddr = accounts[i];
-              var isEligiblePromise = anonymousvotingAddr.methods.eligible(tempaddr).call();
-              isEligiblePromises.push(isEligiblePromise);
-          }
 
-          Promise.all(isEligiblePromises).then(isEligible => {
-            for (var i = 0; i < accounts.length; i++) {
-              if (isEligible[i]) {
-                  foundEligible = true;
-                  listEligible = listEligible + '<option value="' + i + '">' + accounts[i] + '</option>';
-              }
+        // Only run if user has not yet chosen an Ethereum address.
+        if (!addressChosen) {
+            var listEligible = "";
+            var foundEligible = false;
+            // Let user select one of their Ethereum addresses
+            for (var i = 0; i < web3.eth.accounts.length; i++) {
+                var tempaddr = web3.eth.accounts[i];
+                if (anonymousvotingAddr.eligible(tempaddr)) {
+                    foundEligible = true;
+                    listEligible = listEligible + '<option value="' + i + '">' + tempaddr + '</option>';
+                }
             }
+
             // Only create a drop-down box if we have found an address that is eligible to vote!
             if (foundEligible) {
                 var selectbox = "<h2>Eligible Ethereum Accounts</h2><br><p>Address:</p><select id='addrs' class='action-list'>" + listEligible + "</select> <br><br><p>Password:</p> <input type='password' id='passwordf' value='ilikelittlepaddy' name='fname' class='action-text'> <input id='done2' class='hidden next' type='button'> <input type='button' class='action-button'  value = 'Login' onclick='unlock();'>";
                 document.getElementById('dropdown').innerHTML = selectbox;
             }
 
-          });
-      }
-    })();
-  }
 
-    async function resetElection() {
+        }
+    }
 
-      web3.eth.personal.unlockAccount(addr, password);
-      let state = await anonymousvotingAddr.methods.state().call();
-      let endSignupPhase = await anonymousvotingAddr.methods.endSignupPhase().call();
-      let block = await web3.eth.getBlock("latest");
-      let blocktimestamp = block.timestamp;
-      let d = new Date(0);
-      let e = new Date(0);
-      d.setUTCSeconds(endSignupPhase);
-      e.setUTCSeconds(blocktimestamp);
-      console.log('endSignupPhase = ' + d + ', blocktimestamp = ' + e);
-      var res = await anonymousvotingAddr.methods.deadlinePassed().call();
+    function resetElection() {
+
+      web3.personal.unlockAccount(addr, password);
+      var res = anonymousvotingAddr.deadlinePassed.call({ from: web3.eth.accounts[accounts_index], gas: 4200000});
 
       if(res) {
-        await anonymousvotingAddr.methods.deadlinePassed().send({from: addr,gas: 4200000});
+        anonymousvotingAddr.deadlinePassed.sendTransaction({from: web3.eth.accounts[accounts_index],gas: 4200000});
         document.getElementById('reset1').setAttribute("hidden", true);
         document.getElementById("reset1-msg").removeAttribute("hidden");
         document.getElementById('reset2').setAttribute("hidden", true);
@@ -1694,13 +1682,13 @@
       return false;
     }
 
-    async function claimrefund() {
+    function claimrefund() {
 
-      web3.eth.personal.unlockAccount(addr, password);
-      var res = await anonymousvotingAddr.methods.withdrawRefund().call({ from: addr, gas: 4200000});
+      web3.personal.unlockAccount(addr, password);
+      var res = anonymousvotingAddr.withdrawRefund.call({ from: web3.eth.accounts[accounts_index], gas: 4200000});
 
       if(res) {
-        await anonymousvotingAddr.methods.withdrawRefund().send({from: addr,gas: 4200000});
+        anonymousvotingAddr.withdrawRefund.sendTransaction({from: web3.eth.accounts[accounts_index],gas: 4200000});
         document.getElementById('claimrefundbutton').setAttribute("hidden", true);
         document.getElementById("waitingforrefund").removeAttribute("hidden");
       }
@@ -1713,7 +1701,7 @@
         var _password = document.getElementById('passwordf').value;
         document.getElementById('passwordf').value = "";
 
-        if (web3.eth.personal.unlockAccount(_addr, _password,1000)) {
+        if (web3.personal.unlockAccount(_addr, _password)) {
             addressChosen = true;
             addr = _addr;
             password = _password;
@@ -1727,7 +1715,7 @@
     }
 
     // Vote submits their voting key.
-    async function register() {
+    function register() {
 
         if (!uploaded) {
             alert("Please upload your voting codes");
@@ -1739,28 +1727,27 @@
             return;
         }
 
-        if (await anonymousvotingAddr.methods.state().call() != 1) {
+        if (state != 1) {
             alert("You can only register during the SIGNUP Phase ");
             return;
         }
 
-        const isEligible = await anonymousvotingAddr.methods.eligible(addr).call();
-        if (!isEligible) {
+        if (!anonymousvotingAddr.eligible(addr)) {
             alert("Your Ethereum Account is not eligible for this vote");
             return;
         }
 
         // We prove knowledge of the voting key
-        var single_zkp = await cryptoAddr.methods.createZKP(x, v, xG).call({
-            from: addr
+        var single_zkp = cryptoAddr.createZKP.call(x, v, xG, {
+            from: web3.eth.accounts[accounts_index]
         });
         var vG = [single_zkp[1], single_zkp[2], single_zkp[3]];
 
-        await web3.eth.personal.unlockAccount(addr, password);
+        web3.personal.unlockAccount(addr, password);
 
         // Lets make sure the ZKP is valid!
-        var verifyres = await cryptoAddr.methods.verifyZKP.call(xG, single_zkp[0], vG, {
-            from: addr
+        var verifyres = cryptoAddr.verifyZKP.call(xG, single_zkp[0], vG, {
+            from: web3.eth.accounts[accounts_index]
         });
 
         if (!verifyres) {
@@ -1768,17 +1755,17 @@
             return;
         }
 
-        var res = await anonymousvotingAddr.methods.register(xG, vG, single_zkp[0]).call({
-                from: addr,
-                value: depositrequired
+        var res = anonymousvotingAddr.register.call(xG, vG, single_zkp[0], {
+                from: web3.eth.accounts[accounts_index],
+                value: anonymousvotingAddr.depositrequired()
             });
 
         // Submit voting key to the network
         if (res) {
-            await anonymousvotingAddr.methods.register(xG, vG, single_zkp[0]).send({
-                from: addr,
+            anonymousvotingAddr.register.sendTransaction(xG, vG, single_zkp[0], {
+                from: web3.eth.accounts[accounts_index],
                 gas: 4200000,
-                value: depositrequired
+                value: anonymousvotingAddr.depositrequired()
             });
 
             //TODO: DUPLICATED CODE FROM CURRENTSTATE. Needs its own function.
@@ -1906,13 +1893,56 @@
     }
 
     function whatIsQuestion() {
-      anonymousvotingAddr.methods.question().call().then(question => {
-        document.getElementById('question').innerHTML = question;
-        document.getElementById('question2').innerHTML = question;
-        document.getElementById('question3').innerHTML = question;
-        document.getElementById('question4').innerHTML = question;
-      });
+      let proposal = getProposal();
+      let asnInfo = "<span> <label> ASN: </label><h6>" + proposal.asn + "</h6></span>";
+      let scAddressInfo = "<span> <label> Reporting Address: </label><h6>" + proposal.scAddress + "</h6></span>";
+      let votingAddressInfo = "<span> <label> Voting Address: </label><h6>" + proposal.votingAddress + "</h6></span>";
+      let managedIps = "";
 
+      for(let j = 0; j< proposal.managedIps.length; j++) {
+        managedIps += "<li><h6>"+proposal.managedIps[j]+"</h6></li>";
+      }
+      let managedIpList = "<span> <label>Managed IP:</label><ul>" + managedIps + "</ul></span>";
+
+      document.getElementById('proposal').innerHTML= asnInfo + scAddressInfo + votingAddressInfo + managedIpList;
+        document.getElementById('question').innerHTML = anonymousvotingAddr.question();
+        document.getElementById('question2').innerHTML = anonymousvotingAddr.question();
+        document.getElementById('question3').innerHTML = anonymousvotingAddr.question();
+        document.getElementById('question4').innerHTML = anonymousvotingAddr.question();
+      }
+
+    function getProposal() {
+        let rawProposal = anonymousvotingAddr.getProposal();
+        let managedIpHex = rawProposal[2];
+        let managedIpStr = [];
+        let totalMembers = anonymousvotingAddr.totaleligible();
+        let totalInterest = anonymousvotingAddr.totalregistered();
+        let quorumInPercentage = anonymousvotingAddr.getQuorumInPercentage();
+        let endSignupDateTime = anonymousvotingAddr.finishSignupPhase();
+        let startElectionExpiredDateTime = anonymousvotingAddr.endSignupPhase();
+
+        for(let j = 0; j< managedIpHex.length; j++) {
+          managedIpStr.push(web3.toUtf8(managedIpHex[j]));
+        }
+
+        var proposal = {
+          type: rawProposal[0],
+          asn : rawProposal[1],
+          managedIps : managedIpStr,
+          scAddress : rawProposal[3],
+          votingAddress : rawProposal[4],
+          proposalHash : rawProposal[5],
+          submissionTime : rawProposal[6],
+          proposer : rawProposal[7],
+          totalMembers : totalMembers,
+          totalInterest: totalInterest,
+          quorumInPercentage: quorumInPercentage,
+          endSignupTime: endSignupDateTime,
+          startElectionExpiredTime: startElectionExpiredDateTime,
+          rawProposalText:rawProposal[8]
+        }
+
+        return proposal;
       }
 
     whatIsQuestion();
@@ -1938,7 +1968,6 @@
     var r;
     var d;
     var addr;
-    var depositrequired;
 
     /*
      * State Variables. Make sure we only do these things ONCE.
@@ -1984,25 +2013,21 @@
     var changedToTally = false;
 
     // Create the 'Registration Screen'. Mostly here to tidy up code.
-    async function createRegistrationField() {
+    function createRegistrationField() {
 
       if(!changedToRegistration) {
         document.getElementById('registerready').removeAttribute("hidden");
-        depositrequired = await anonymousvotingAddr.methods.depositrequired().call();
-        document.getElementById('deposit').innerHTML = web3.utils.fromWei(depositrequired, "ether");
+        document.getElementById('deposit').innerHTML = web3.fromWei(anonymousvotingAddr.depositrequired());
         var date = new Date();
-        const finishSignupPhase = await anonymousvotingAddr.methods.finishSignupPhase().call();
-        date.setTime(finishSignupPhase * 1000);
+        date.setTime(anonymousvotingAddr.finishSignupPhase() * 1000);
         document.getElementById('registerby').innerHTML = "<hr><br>Register your ballot before " + clockformat(date);
-        const endSignupPhase = await anonymousvotingAddr.methods.endSignupPhase().call();
-        date.setTime(endSignupPhase * 1000);
+        date.setTime(anonymousvotingAddr.endSignupPhase() * 1000);
         document.getElementById('registerrefundby').innerHTML = "All deposits are refunded after " + clockformat(date) + " if the sign up phase does not finish.";
         changedToRegistration = true;
       }
 
       // Have we submited the key yet?
-      const isAddressRegistered = await anonymousvotingAddr.methods.registered(addr).call();
-      if(isAddressRegistered) {
+      if(anonymousvotingAddr.registered(addr)) {
         document.getElementById('registerbutton').setAttribute("hidden",true);
         document.getElementById('asktoregister').setAttribute("hidden",true);
         document.getElementById("registrationprogress").removeAttribute("hidden");
@@ -2010,34 +2035,31 @@
       } else {
         document.getElementById('asktoregister').removeAttribute("hidden");
       }
-      const accounts = await web3.eth.getAccounts();
-      const currentAccount = accounts[accounts_index];
 
-      document.getElementById('balance').innerHTML = web3.utils.fromWei(await web3.eth.getBalance(currentAccount), "ether");
+      document.getElementById('balance').innerHTML = web3.fromWei(web3.eth.getBalance(web3.eth.accounts[accounts_index]));
 
     }
 
-    async function currentState() {
+    function currentState() {
 
         if(!addressChosen) {
           return;
         }
-        const state = await anonymousvotingAddr.methods.state().call();
+        state = anonymousvotingAddr.state();
 
         whatIsQuestion();
 
         if (state == 0) {
 
         } else if (state == 1) {
-            const time = await anonymousvotingAddr.methods.endSignupPhase().call() * 1000;
+            var time = anonymousvotingAddr.endSignupPhase() * 1000;
             var currentTime = new Date().getTime();
             document.getElementById('registerwait').setAttribute("hidden",true);
             if(currentTime > time) {
               document.getElementById("registerready").setAttribute("hidden", true);
               document.getElementById("resetbutton").removeAttribute("hidden");
               document.getElementById("regclock").innerHTML = clockformat(new Date(time));
-              const isRegistered = anonymousvotingAddr.methods.registered(addr).call();
-              if(!isRegistered) {
+              if(!anonymousvotingAddr.registered(web3.eth.accounts[accounts_index])) {
                 document.getElementById("resetbutton").innerHTML = "You did not register to vote. <br> No deposit to return.";
               }
               document.getElementById('registerby').setAttribute("hidden", true);
@@ -2197,12 +2219,9 @@
           }
 
             // Did everyone vote? Did we have voters registered?
-            const totalregistered = await anonymousvotingAddr.methods.totalregistered().call();
-            const totalvoted = await anonymousvotingAddr.methods.totalvoted().call();
-            const zero = new BigNumber("0");
-            if((totalregistered==totalvoted) && !zero.eq(totalregistered)) {
-              var yes = await anonymousvotingAddr.methods.finaltally(0).call();
-              var total = await anonymousvotingAddr.methods.finaltally(1).call();
+            if((anonymousvotingAddr.totalregistered().eq(anonymousvotingAddr.totalvoted())) && !anonymousvotingAddr.totalregistered().eq(new BigNumber("0"))) {
+              var yes = anonymousvotingAddr.finaltally(0);
+              var total = anonymousvotingAddr.finaltally(1);
               var no = total - yes;
               document.getElementById('result').innerHTML = "Yes = " + yes + "<br> No = " + no;
             } else {
@@ -2210,14 +2229,11 @@
             }
 
             // Decide if refund button should be displayed or not...
-            const hasRefund = await anonymousvotingAddr.methods.refunds(addr).call();
-            if(hasRefund  > 0) {
-              const endRefundPhase = await anonymousvotingAddr.methods.endRefundPhase().call();
-              depositrequired = await anonymousvotingAddr.methods.depositrequired().call();
+            if(anonymousvotingAddr.refunds(web3.eth.accounts[accounts_index]) > 0) {
               document.getElementById("refund-notvalid").setAttribute("hidden", true);
               document.getElementById("refund-valid").removeAttribute("hidden");
-              document.getElementById("refund").innerHTML = web3.utils.fromWei(depositrequired, "ether");
-              document.getElementById("refundclock").innerHTML = clockformat(new Date(endRefundPhase * 1000));
+              document.getElementById("refund").innerHTML = web3.fromWei(anonymousvotingAddr.depositrequired());
+              document.getElementById("refundclock").innerHTML = clockformat(new Date(anonymousvotingAddr.endRefundPhase() * 1000));
             } else {
               document.getElementById("refund-valid").setAttribute("hidden", true);
               document.getElementById("refund-notvalid").removeAttribute("hidden");
@@ -2233,31 +2249,27 @@
 
     }
 
-    async function checkStatistics() {
+    function checkStatistics() {
 
-      const eligible = await anonymousvotingAddr.methods.totaleligible().call();
-      const registered = await anonymousvotingAddr.methods.totalregistered().call();
-      const committed = await await anonymousvotingAddr.methods.totalcommitted().call();
-      const voted = await anonymousvotingAddr.methods.totalvoted().call();
+      var eligible = anonymousvotingAddr.totaleligible();
+      var registered = anonymousvotingAddr.totalregistered();
+      var committed = anonymousvotingAddr.totalcommitted();
+      var voted = anonymousvotingAddr.totalvoted();
 
       document.getElementById("registrationprogress").innerHTML = registered + "/" + eligible + " voters have registered.";
       document.getElementById("no_vote_waiting").innerHTML = committed + "/" + registered + " voters have sealed, but not revealed their encrypted vote.";
       document.getElementById("vote_waiting").innerHTML = voted + "/" + registered + " votes have been cast.";
     }
 
-    async function checkVoteCast() {
+    function checkVoteCast() {
 
         // Check if key has been submitted
-        const isSubmitted = anonymousvotingAddr.methods.registered(addr).call();
-        if (isSubmitted) {
+        if (anonymousvotingAddr.registered(addr)) {
             document.getElementById('submitvotingkey').innerHTML = "Voting key has been accepted by Ethereum";
             //Check if vote has already been cast (or if a commitment has been accepted)
-            const isVoteCasted = await anonymousvotingAddr.methods.votecast(addr).call();
-            const isVoteCommitted = await anonymousvotingAddr.methods.commitment(addr).call();
-            const state = await anonymousvotingAddr.methods.state().call();
-            if (isVoteCasted) {
+            if (anonymousvotingAddr.votecast(addr)) {
                 document.getElementById('do_vote').innerHTML = "Vote has been cast";
-            } else if (isVoteCommitted && state != 4) {
+            } else if (anonymousvotingAddr.commitment(addr) && state != 4) {
                 document.getElementById('vote').innerHTML = "You have comitted (but not revealed) your vote";
             }
         }
@@ -2269,7 +2281,7 @@
     currentState();
 
     // Control which window opens....
-    async function controlTransition(currentfs, nextfs) {
+    function controlTransition(currentfs, nextfs) {
 
       // Prevent weird loop
       if(currentfs == nextfs) {
@@ -2281,7 +2293,7 @@
       }
 
       // Nope.. jump to latest state.
-      const state = await anonymousvotingAddr.methods.state().call();
+      var state = anonymousvotingAddr.state();
 
       switch(state.toString("10")) {
         case "0":
