@@ -9,4 +9,5 @@ read _scAddress
 echo "Enter your voting address:"
 read _votingAddress
 
-echo "ADD|"$_asn"|"$_ipRange"|"$_scAddress"|"$_votingAddress > $_votingAddress.txt
+echo "ADD|"$_asn"|"$_ipRange"|"$_scAddress"|"$_votingAddress > $_asn.txt
+gpg --detach-sig --armour $_asn.txt

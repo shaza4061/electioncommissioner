@@ -25,6 +25,251 @@ if (typeof web3 !== 'undefined') {
        console.log("Using web socket: http://localhost:8545");
    }
 var accounts;
+
+var registry_abi = [
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "_asn",
+        "type": "uint256[]"
+      },
+      {
+        "name": "_ip",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "_contractAddress",
+        "type": "address[]"
+      },
+      {
+        "name": "_votingAddress",
+        "type": "address[]"
+      },
+      {
+        "name": "_size",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "_asn",
+        "type": "uint256"
+      }
+    ],
+    "name": "EventMemberAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "_asn",
+        "type": "uint256"
+      }
+    ],
+    "name": "EventMemberRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "_i",
+        "type": "uint256"
+      }
+    ],
+    "name": "EventDebug",
+    "type": "event"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_asn",
+        "type": "uint256"
+      }
+    ],
+    "name": "getManagedIpByAsn",
+    "outputs": [
+      {
+        "name": "_ip",
+        "type": "bytes32[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_asn",
+        "type": "uint256"
+      }
+    ],
+    "name": "getMemberAddressesByAsn",
+    "outputs": [
+      {
+        "name": "_contractAddress",
+        "type": "address"
+      },
+      {
+        "name": "_votingAddress",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_asn",
+        "type": "uint256"
+      },
+      {
+        "name": "_ip",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "_contractAddress",
+        "type": "address"
+      },
+      {
+        "name": "_votingAddress",
+        "type": "address"
+      }
+    ],
+    "name": "addMember",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_asn",
+        "type": "uint256"
+      }
+    ],
+    "name": "removeMember",
+    "outputs": [
+      {
+        "name": "_registeredAsn",
+        "type": "uint256[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getTotalMembers",
+    "outputs": [
+      {
+        "name": "_totalMembers",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getRegisteredAsn",
+    "outputs": [
+      {
+        "name": "_asn",
+        "type": "uint256[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getAllMembersVotingAddresses",
+    "outputs": [
+      {
+        "name": "_votingAddresses",
+        "type": "address[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_memberAddress",
+        "type": "address"
+      }
+    ],
+    "name": "isMember",
+    "outputs": [
+      {
+        "name": "_isExist",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
+var ecRegistry = new web3.eth.Contract(registry_abi,"0xD3edAF4EC2eC0e7BE6BbbCB1fE1f9DC7DA1a48B0");
+
 var abi = [
   {
     "constant": true,
@@ -746,6 +991,10 @@ var abi = [
       {
         "name": "_rawProposal",
         "type": "string"
+      },
+      {
+        "name": "_question",
+        "type": "string"
       }
     ],
     "name": "submitProposal",
@@ -920,37 +1169,70 @@ electionCommissioner.events.allEvents({ fromBlock:'latest' }, function(error, re
     console.log(result);
 });
 
-var openSignatureFile = function(event) {
+function openSignatureFile(event) {
     var input = event.target;
     var reader = new FileReader();
     reader.onload = function() {
       document.getElementById('signature').innerHTML = reader.result;
     }
+    document.getElementById("proposalAddMemberSignatureForm").classList.remove('hidden');
+
     reader.readAsText(input.files[0]);
 };
 
-var openProposalFile = function(event) {
+function openProposalFile(event) {
     var input = event.target;
     var reader = new FileReader();
-    reader.onload = function() {
+    let asn ;
+    let scAddress;
+    let votingAddress;
+    reader.onload = async function() {
       rawProposalText = reader.result;
       let rawText = rawProposalText.split("|");
       let proposalType = rawText[0];
-      let asn = rawText[1];
-       managedIpString = rawText[2];
-      let scAddress = rawText[3];
-      let votingAddress = rawText[4];
-      let managedIp = managedIpString.split(',');
+      switch (proposalType) {
+        case "ADD":
+          asn = rawText[1];
+          managedIpString = rawText[2];
+          scAddress = rawText[3];
+          votingAddress = rawText[4];
+          let managedIp = managedIpString.split(',');
 
-      document.getElementById('asn').value = asn;
-      document.getElementById('scAddress').value = scAddress;
-      document.getElementById('votingAddress').value = votingAddress;
-      for(let i =0; i< managedIp.length; i++) {
-        var ul = document.getElementById("managedIp");
-        var li = document.createElement("li");
-        li.appendChild(document.createTextNode(managedIp[i]));
-        ul.appendChild(li);
+          document.getElementById('asn').value = asn;
+          document.getElementById('scAddress').value = scAddress;
+          document.getElementById('votingAddress').value = votingAddress;
+          document.getElementById('addMemberProposal').checked = true;
+          for(let i =0; i< managedIp.length; i++) {
+            var ul = document.getElementById("managedIp");
+            var li = document.createElement("li");
+            li.appendChild(document.createTextNode(managedIp[i]));
+            ul.appendChild(li);
+          }
+          document.getElementById("proposalAddMemberForm").classList.remove('hidden');
+          break;
+
+        case "REMOVE":
+          asn = rawText[1];
+          const ethAddresses = await ecRegistry.methods.getMemberAddressesByAsn(asn).call();
+          const ipAddressHex = await ecRegistry.methods.getManagedIpByAsn(asn).call();
+          scAddress = ethAddresses[0];
+          votingAddress = ethAddresses[1];
+          document.getElementById('asn').value = asn;
+          document.getElementById('scAddress').value = scAddress;
+          document.getElementById('votingAddress').value = votingAddress;
+          document.getElementById('removeMemberProposal').checked = true;
+          for(let j = 0; j< ipAddressHex.length; j++) {
+            var ul = document.getElementById("managedIp");
+            var li = document.createElement("li");
+            li.appendChild(document.createTextNode(web3.utils.hexToUtf8(ipAddressHex[j])));
+            ul.appendChild(li);
+          }
+          document.getElementById("proposalAddMemberForm").classList.remove('hidden');
+          break;
+        default:
+
       }
+
     }
     reader.readAsText(input.files[0]);
 };
@@ -961,6 +1243,7 @@ async function beginElection() {
   let currentBlock = await web3.eth.getBlock("latest");
   let blocktimestamp = currentBlock.timestamp;
   console.log("endSignupDateTime = "+ endSignupDateTime +", blocktimestamp = " + blocktimestamp);
+  currentAccount = $("#ethAcct" ).val();
 
   let success = await electionCommissioner.methods.startElection().call({from: currentAccount,gas: 4200000});
   if(success) {
@@ -970,7 +1253,14 @@ async function beginElection() {
   }
 }
 
+function proposalIsLoaded() {
+  return  !document.getElementById('asn').value == '' && !document.getElementById('scAddress').value == '' && !document.getElementById('votingAddress').value == '' && !document.getElementById('signature').innerHTML == '';
+}
 async function sendProposal () {
+  if (!proposalIsLoaded()) {
+    alert('Incomplete proposal');
+    return;
+  }
   openWallet();
   let managedIps = [];
   let ul = document.getElementById("managedIp");
@@ -980,6 +1270,14 @@ async function sendProposal () {
   }
 
   const dateInSeconds = Math.round((new Date).getTime() / 1000);
+  let questionHeaderHtml = "<h2>" + document.querySelector("#proposal input[name='proposalType']:checked").getAttribute("caption") + "</h2>";
+  let asnHtml = "<p>"+"<h5>ASN</h5><h6>"+ document.getElementById('asn').value +"</h6></p>";
+  let ipsHtml = "<p><h5>Managed Ip(s)</h5><h6><ul style='list-style-position: inside;'>" + document.getElementById("managedIp").innerHTML + "</ul></h6></p>"
+  let reportingAddressHtml = "<p><h5>Reporting Address</h5><h6>"+ document.getElementById('scAddress').value +"</h6></p>";
+  let votingAddressHtml = "<p><h5>Voting Address</h5><h6>"+ document.getElementById('votingAddress').value +"</h6></p>";
+  let questionBodyHtml = "<div align='left' style='border:1px solid black'>" + asnHtml + ipsHtml + reportingAddressHtml + votingAddressHtml + "</div>";
+  let fullQuestion = questionHeaderHtml + questionBodyHtml;
+
   let success =  await electionCommissioner.methods.submitProposal(
     document.querySelector("#proposal input[name='proposalType']:checked").value,
     document.getElementById('asn').value,
@@ -988,7 +1286,8 @@ async function sendProposal () {
     document.getElementById('votingAddress').value,
     document.getElementById('signature').innerHTML,
     dateInSeconds,
-    rawProposalText
+    rawProposalText,
+    fullQuestion
   ).call({from: currentAccount,gas: 4200000, value: 1000000000000000000 });
 
   if (success) {
@@ -1001,7 +1300,8 @@ async function sendProposal () {
         document.getElementById('votingAddress').value,
         document.getElementById('signature').innerHTML,
         dateInSeconds,
-        rawProposalText
+        rawProposalText,
+        fullQuestion
       ).send({from: currentAccount,gas: 4200000, value: 1000000000000000000 });
     } catch (error) {
         // User denied account access...
@@ -1031,7 +1331,7 @@ async function checkStatus() {
       case "1":
       case "2":
       case "3":
-        electionStage()
+        electionStage();
         break;
       case "4":
         refundStage();
@@ -1042,6 +1342,18 @@ async function checkStatus() {
 
   });
 }
+function showElement(elementId) {
+  if (elementId.classList.contains("hidden")) {
+    elementId.classList.remove('hidden')
+  }
+}
+
+function hideElement(elementId) {
+  if (!elementId.classList.contains("hidden")) {
+    elementId.classList.add('hidden')
+  }
+}
+
 
 function proposalStage() {
   document.getElementById('status').innerHTML = " no ";
@@ -1049,9 +1361,10 @@ function proposalStage() {
   document.getElementById("selectSignatureBtn").disabled = false;
   document.getElementById("submitProposalBtn").disabled = false;
   document.getElementById("startElectionBtn").disabled = true;
-  document.getElementById("getDepositBtn").disabled = true;
-  document.getElementById("resetElectionBtn").disabled = false;
-  showFooterPanel();
+  //document.getElementById("getDepositBtn").disabled = true;
+  document.getElementById("resetElectionBtn").disabled = true;
+  //document.getElementById("resetElectionBtn").classList.remove('hidden');
+  hideElement(document.getElementById("resetElectionBtn"));
 }
 
 function refundStage() {
@@ -1060,7 +1373,7 @@ function refundStage() {
   document.getElementById("selectSignatureBtn").disabled = true;
   document.getElementById("submitProposalBtn").disabled = true;
   document.getElementById("startElectionBtn").disabled = true;
-  document.getElementById("getDepositBtn").disabled = false;
+  //document.getElementById("getDepositBtn").disabled = false;
   document.getElementById("startElectionBtn").classList.add('hidden');
   document.getElementById("resetElectionBtn").classList.remove('hidden');
   document.getElementById("resetElectionBtn").disabled = false;
@@ -1091,7 +1404,7 @@ function disableForm() {
   document.getElementById("selectSignatureBtn").disabled = true;
   document.getElementById("submitProposalBtn").disabled = true;
   document.getElementById("startElectionBtn").disabled = true;
-  document.getElementById("getDepositBtn").disabled = true;
+  //document.getElementById("getDepositBtn").disabled = true;
   document.getElementById("startElectionBtn").classList.add('hidden');
   document.getElementById("resetElectionBtn").classList.remove('hidden');
   document.getElementById("resetElectionBtn").disabled = false;
@@ -1166,18 +1479,71 @@ async function populateForms(proposal) {
   generateDownloadSignatureLink(proposal.proposalHash);
 }
 
+async function checkDeadlines(currentState) {
+
+  let currentTime = new Date().getTime();
+  let time = 9999999999999; // High value to always be greater than a unix timestamp
+  let totalMembers;
+  let totalInterest;
+  let quorumInPercentage;
+
+
+  // Find the relevant time...
+  switch(currentState) {
+    case "0":
+      return;
+    case "1":
+      totalMembers = await electionCommissioner.methods.totaleligible().call();
+      totalInterest = await electionCommissioner.methods.totalregistered().call();
+      quorumInPercentage = await electionCommissioner.methods.getQuorumInPercentage().call();
+      time = await electionCommissioner.methods.endSignupPhase().call() * 1000;
+      break;
+    case "2":
+      time = await electionCommissioner.methods.endCommitmentPhase().call() * 1000;
+      break;
+    case "3":
+      time = await electionCommissioner.methods.endVotingPhase().call() * 1000;
+      break;
+    default:
+      break;
+  }
+
+  if(currentTime > time) {
+    document.getElementById("proposalExpired").classList.remove('hidden');
+    document.getElementById("startElectionBtn").disabled = true;
+    document.getElementById("startElectionBtn").classList.add('hidden');
+    document.getElementById("resetElectionBtn").disabled = false;
+    document.getElementById("resetElectionBtn").classList.remove('hidden');
+  } else {
+    //if in SIGNUP stage but not enough quorum dpn't enable button
+    if (currentState == "1" && Math.round(totalInterest/totalMembers*100) > quorumInPercentage && currentTime > time) {
+      document.getElementById("startElectionBtn").disabled = false;
+      document.getElementById("startElectionBtn").classList.remove('hidden');
+    }
+    document.getElementById("proposalExpired").classList.add('hidden');
+    document.getElementById("resetElectionBtn").disabled = true;
+    document.getElementById("resetElectionBtn").classList.add('hidden');
+  }
+}
+
 function showFooterPanel(proposerAddr, endSignupTime, startElectionExpiredTime) {
   console.log("current state = " + currentState);
   let currentTime = new Date();
-
+  checkDeadlines(currentState);
+  document.getElementById("footer").classList.remove('hidden');
   if(currentState != "0") {
     document.getElementById("successLabel").classList.remove('hidden');
+    document.getElementById("onlyForProposer").classList.remove('hidden');
     if(currentTime.getTime() > endSignupTime* 1000 && currentTime.getTime() < startElectionExpiredTime * 1000) {
-      document.getElementById("startElectionBtn").disabled = false;
-      document.getElementById("startElectionBtn").classList.remove('hidden');
-      document.getElementById("resetElectionBtn").disabled = true;
-      document.getElementById("resetElectionBtn").classList.add('hidden');
-    } else if (currentTime.getTime() > startElectionExpiredTime * 1000) {
+      if (currentState == "2") {
+        document.getElementById("startElectionBtn").disabled = true;
+      } else {
+        document.getElementById("startElectionBtn").disabled = false;
+        document.getElementById("startElectionBtn").classList.remove('hidden');
+      }
+    document.getElementById("resetElectionBtn").disabled = true;
+    document.getElementById("resetElectionBtn").classList.add('hidden');
+  } else if (currentTime.getTime() > startElectionExpiredTime * 1000 && currentState != "2") {
       document.getElementById("proposalExpired").classList.remove('hidden');
       document.getElementById("startElectionBtn").disabled = true;
       document.getElementById("startElectionBtn").classList.add('hidden');
@@ -1189,19 +1555,19 @@ function showFooterPanel(proposerAddr, endSignupTime, startElectionExpiredTime) 
       document.getElementById("startElectionBtn").disabled = true;
       document.getElementById("startElectionBtn").classList.remove('hidden');
     }
-    if (typeof proposerAddr !== 'undefined') {
-      if(proposerAddr.toUpperCase() == currentAccount.toUpperCase()) {
-      document.getElementById("onlyForProposer").classList.remove('hidden');
-    }
+    //if (typeof proposerAddr !== 'undefined') {
+    //  if(proposerAddr.toUpperCase() == currentAccount.toUpperCase()) {
+    //  document.getElementById("onlyForProposer").classList.remove('hidden');
+    //}
 
-    }
-    document.getElementById("footer").classList.remove('hidden');
+
   }
 }
 
 async function resetElection() {
   let currentTime = new Date();
   let endRefundTime = await electionCommissioner.methods.endRefundPhase().call() ;
+  currentAccount = $("#ethAcct" ).val();
 
   let success = await electionCommissioner.methods.cancelProposal().call({ from: currentAccount, gas: 4200000});
 
@@ -1225,11 +1591,15 @@ function electionStage() {
   document.getElementById("selectProposalBtn").disabled = true;
   document.getElementById("selectSignatureBtn").disabled = true;
   document.getElementById("submitProposalBtn").disabled = true;
-  document.getElementById("getDepositBtn").disabled = true;
+  //document.getElementById("getDepositBtn").disabled = true;
+  document.getElementById("startElectionBtn").disabled = true;
+
   proposal.then(prop => {
     populateForms(prop);
     showFooterPanel(prop.proposer, prop.endSignupTime, prop.startElectionExpiredTime);
   });
+  document.getElementById("proposalAddMemberSignatureForm").classList.remove('hidden');
+  document.getElementById("proposalAddMemberForm").classList.remove('hidden');
 }
 
 function openWallet() {
@@ -1311,43 +1681,49 @@ window.addEventListener('load', async () => {
   <div class="page-header"><h1>Election Commissioner Proposal</h1></div>
   <h2>There is <span id="status"> no </span> proposal in progress</h2>
   <div class="form-group">
-    <label>Proposal Type </label><br/><input type="radio" id="addMemberProposal" name="proposalType" value="0" checked> Add New Member <input type="radio" id="removeMemberProposal" name="proposalType" value="1"> Remove Existing Member
-  </div>
-  <div class="form-group">
     <label>Load Proposal</label><input id ="selectProposalBtn" type="file" onChange="openProposalFile(event);" disabled>
   </div>
-  <div class="form-group">
-    <label>ASN</label>
-    <input id="asn" readonly>
+
+  <div class="hidden" id="proposalAddMemberForm">
+    <div class="form-group">
+      <label>Proposal Type </label><br/><input type="radio" id="addMemberProposal" caption="Add Member" name="proposalType" value="0" checked disabled> Add New Member <input type="radio" id="removeMemberProposal" caption="Remove Member" name="proposalType" value="1" disabled> Remove Existing Member
+    </div>
+    <div class="form-group">
+      <label>ASN</label>
+      <input id="asn" readonly>
+    </div>
+    <div class="form-group">
+      <label>Managed IP</label>
+      <ul id="managedIp"></ul>
+    </div>
+    <div class="form-group">
+      <label>Reporting Address</label>
+      <input class="form-control input-sm" id="scAddress" readonly>
+    </div>
+    <div class="form-group">
+      <label>Voting Address</label>
+      <input class="form-control input-sm" id="votingAddress" readonly>
+    </div>
+    <div class="form-group">
+      <a id="downloadProposalLink" download="proposal.txt" href=""></a>
+    </div>
+
   </div>
-  <div class="form-group">
-    <label>Managed IP</label>
-    <ul id="managedIp"></ul>
-  </div>
-  <div class="form-group">
-    <label>Reporting Address</label>
-    <input id="scAddress" readonly>
-  </div>
-  <div class="form-group">
-    <label>Voting Address</label>
-    <input id="votingAddress" readonly>
-  </div>
-  <div class="form-group">
-    <a id="downloadProposalLink" download="proposal.txt" href=""></a>
-  </div>
-  <div class="form-group">
-    <label for="exampleFormControlTextarea1">Signature</label>
-    <textarea class="form-control" id="signature" rows="12" readonly></textarea>
-    <label class="form-control-sm">Load Signature<input type="file" id="selectSignatureBtn" onChange="openSignatureFile(event);" disabled></label>
-  </div>
-  <div class="form-group">
-    <a id="downloadSignatureLink" download="signature.asc" href=""></a>
+  <label class="form-control-sm">Load Signature<input type="file" id="selectSignatureBtn" onChange="openSignatureFile(event);" disabled></label>
+  <div class="hidden" id="proposalAddMemberSignatureForm">
+    <div class="form-group">
+      <label for="exampleFormControlTextarea1">Signature</label>
+      <textarea class="form-control" id="signature" rows="12" readonly></textarea>
+    </div>
+    <div class="form-group">
+      <a id="downloadSignatureLink" download="signature.asc" href=""></a>
+    </div>
   </div>
 </form>
 <div class="panel panel-default">
     <div class="panel-body hidden" id="footer">
       <p class="bg-success hidden" id="successLabel"><label>Proposed By:</label><span id="proposer"></span> <label>At:</label><span id="submissionTime"></span></p>
-      <p class="bg-warning hidden" id="onlyForProposer">You need start the election after <b id="electionTimeLabel"> </b> if number of interest exceeds the quorum</p>
+      <p class="bg-warning hidden" id="onlyForProposer">Election can start after <b id="electionTimeLabel"> </b> if number of interest exceeds the quorum</p>
       <p class="bg-danger hidden" id="proposalExpired">This proposal has expired</p>
       <span class="label label-primary" id="totalMembersLabel">Total members:<span class="badge" id ="totalMembersBadge"></span></span>
       <span class="label label-primary" id="totalInterestLabel">Total interest:<span class="badge" id ="totalInterestBadge"></span></span>
@@ -1356,8 +1732,8 @@ window.addEventListener('load', async () => {
       <div class="panel-footer">
         <button id="submitProposalBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','submitProposal')"  disabled>Submit</button> &#8594;
         <button id="startElectionBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','startElection')"  disabled>Start Election</button>
-        <button id="resetElectionBtn" type="button" class="btn btn-danger hidden" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','resetElection')" disabled>Reset Election</button>&#8594;
-        <button id="getDepositBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','getDeposit')"  disabled>Get Deposit</button>
+        <button id="resetElectionBtn" type="button" class="btn btn-danger hidden" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','resetElection')" disabled>Reset Election</button>
+        <!-- <button id="getDepositBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#unlockAccountForm" onclick="$('#unlockAccount').attr('data-text','getDeposit')"  disabled>Get Deposit</button> -->
       </div>
   </div>
 

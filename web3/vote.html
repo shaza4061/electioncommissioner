@@ -54,7 +54,7 @@
             <div>
                 <p id="registerwait">Please wait.... Registration will begin soon.</p>
                 <div hidden id="registerready">
-                   <h2 id="question3"></h2>
+                   <div id="question3"></div>
                    <div class="form-group" id="proposal" align="left">
                    </div>
                    <br>
@@ -1893,56 +1893,11 @@
     }
 
     function whatIsQuestion() {
-      let proposal = getProposal();
-      let asnInfo = "<span> <label> ASN: </label><h6>" + proposal.asn + "</h6></span>";
-      let scAddressInfo = "<span> <label> Reporting Address: </label><h6>" + proposal.scAddress + "</h6></span>";
-      let votingAddressInfo = "<span> <label> Voting Address: </label><h6>" + proposal.votingAddress + "</h6></span>";
-      let managedIps = "";
 
-      for(let j = 0; j< proposal.managedIps.length; j++) {
-        managedIps += "<li><h6>"+proposal.managedIps[j]+"</h6></li>";
-      }
-      let managedIpList = "<span> <label>Managed IP:</label><ul>" + managedIps + "</ul></span>";
-
-      document.getElementById('proposal').innerHTML= asnInfo + scAddressInfo + votingAddressInfo + managedIpList;
         document.getElementById('question').innerHTML = anonymousvotingAddr.question();
         document.getElementById('question2').innerHTML = anonymousvotingAddr.question();
         document.getElementById('question3').innerHTML = anonymousvotingAddr.question();
         document.getElementById('question4').innerHTML = anonymousvotingAddr.question();
-      }
-
-    function getProposal() {
-        let rawProposal = anonymousvotingAddr.getProposal();
-        let managedIpHex = rawProposal[2];
-        let managedIpStr = [];
-        let totalMembers = anonymousvotingAddr.totaleligible();
-        let totalInterest = anonymousvotingAddr.totalregistered();
-        let quorumInPercentage = anonymousvotingAddr.getQuorumInPercentage();
-        let endSignupDateTime = anonymousvotingAddr.finishSignupPhase();
-        let startElectionExpiredDateTime = anonymousvotingAddr.endSignupPhase();
-
-        for(let j = 0; j< managedIpHex.length; j++) {
-          managedIpStr.push(web3.toUtf8(managedIpHex[j]));
-        }
-
-        var proposal = {
-          type: rawProposal[0],
-          asn : rawProposal[1],
-          managedIps : managedIpStr,
-          scAddress : rawProposal[3],
-          votingAddress : rawProposal[4],
-          proposalHash : rawProposal[5],
-          submissionTime : rawProposal[6],
-          proposer : rawProposal[7],
-          totalMembers : totalMembers,
-          totalInterest: totalInterest,
-          quorumInPercentage: quorumInPercentage,
-          endSignupTime: endSignupDateTime,
-          startElectionExpiredTime: startElectionExpiredDateTime,
-          rawProposalText:rawProposal[8]
-        }
-
-        return proposal;
       }
 
     whatIsQuestion();

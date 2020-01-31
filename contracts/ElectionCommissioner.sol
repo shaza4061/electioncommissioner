@@ -70,7 +70,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     setEligible(voters);
   }
 
-  function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, string _rawProposal) public isMember payable returns (bool){
+  function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, string _rawProposal, string _question) public isMember payable returns (bool){
     // Require Proposer to deposit ether
     require(msg.value == depositRequired,  "Deposit sent is not equal to deposit required");
 
@@ -96,12 +96,11 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     uint ecEndVotingPhase = ecEndCommitmentPhase + endVotingPhaseDuration;
     //uint ecEndRefundPhase = ecEndVotingPhase + endRefundPhase; //stack too deep. max number of variable reached
     rawProposal = _rawProposal;
-    string memory proposalTypeStr;
 
     require(ecFinishSignupPhase > 0 + gap, "ecFinishSignupPhase must be more than 0 + gap");
     require(addresses.length >= 3, "addresses must be more than 3");
     require(depositRequired >= 0, "depositrequired must not be 0");
-
+/**
     if(_proposalType == ProposalType.ADD_MEMBER) {
       proposalTypeStr = "Add member";
     } else if (_proposalType == ProposalType.REMOVE_MEMBER) {
@@ -109,7 +108,8 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     } else {
       revert("Unrecognized proposal type");
     }
-    return beginSignUp(proposalTypeStr, true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndVotingPhase + endRefundPhase, depositRequired);
+    **/
+    return beginSignUp(_question, true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndVotingPhase + endRefundPhase, depositRequired);
   }
 
   function getProposal() view public returns(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, address _proposer, string _rawProposal) {
@@ -120,7 +120,9 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     uint totalInterestInPercentage = totalregistered/totaleligible*100;
     bool success = false;
     if (totalInterestInPercentage > quorumInPercentage) {
-      success = finishRegistrationPhase();
+      bool registrationPhaseFinished = finishRegistrationPhase();
+      bool depositIsReturned = msg.sender.send(currentProposal.deposit);
+      success = depositIsReturned && registrationPhaseFinished;
     }
     return success;
   }
@@ -154,7 +156,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     }
     return false;
   }
-
+/**
   function getDeposit() public isProposer inState(State.FINISHED) {
     if (msg.sender.send(currentProposal.deposit)) {
       //refunds successful
@@ -163,7 +165,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
       revert("Refund not successful");
     }
   }
-
+**/
   function executeProposal() internal returns(bool) {
     if(currentProposal.proposalType == ProposalType.ADD_MEMBER) {
       registry.addMember(currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress);
@@ -175,7 +177,4 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
 
     return true;
   }
-
-
-
 }
