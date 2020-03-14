@@ -1356,18 +1356,21 @@ function hideElement(elementId) {
 
 
 function proposalStage() {
-  document.getElementById('status').innerHTML = " no ";
+  //document.getElementById('status').innerHTML = " no ";
   document.getElementById("selectProposalBtn").disabled = false;
   document.getElementById("selectSignatureBtn").disabled = false;
   document.getElementById("submitProposalBtn").disabled = false;
-  document.getElementById("startElectionBtn").disabled = true;
-  //document.getElementById("getDepositBtn").disabled = true;
-  document.getElementById("resetElectionBtn").disabled = true;
-  //document.getElementById("resetElectionBtn").classList.remove('hidden');
+  //document.getElementById("startElectionBtn").disabled = true;
+  //document.getElementById("resetElectionBtn").disabled = true;
+  //disableForm();
+  hideElement(document.getElementById("proposalExpired"));
+  hideElement(document.getElementById("successLabel"));
+  hideElement(document.getElementById("onlyForProposer"));
   hideElement(document.getElementById("resetElectionBtn"));
+  hideElement(document.getElementById("electionResultLabel"));
 }
 
-function refundStage() {
+async function refundStage() {
   document.getElementById('status').innerHTML = " a ";
   document.getElementById("selectProposalBtn").disabled = true;
   document.getElementById("selectSignatureBtn").disabled = true;
@@ -1382,6 +1385,20 @@ function refundStage() {
     populateForms(prop);
     showFooterPanel(prop.proposer, prop.endSignupTime, prop.startElectionExpiredTime);
   });
+  document.getElementById("proposalAddMemberSignatureForm").classList.remove('hidden');
+  document.getElementById("proposalAddMemberForm").classList.remove('hidden');
+  let yes = await anonymousvotingAddr.methods.finaltally(0).call();
+  let total = await anonymousvotingAddr.methods.finaltally(1).call();
+  let no = total - yes;
+  let resultTextLabel;
+  let resultLabel = "Election ended (Yes = "+ yes +", No = " + no + ")";
+  if (yes > no) {
+    resultTextLabel = "<span class='text-success'>Proposal adopted</span>";
+  } else {
+    resultTextLabel = "<span class='text-danger'>Proposal adopted</span>";
+  }
+
+  document.getElementById("electionResultLabel").innerHTML = resultLabel + resultTextLabel;
 }
 
 function emptyForm() {
@@ -1393,7 +1410,7 @@ function emptyForm() {
   document.getElementById("managedIp").value = "";
   document.getElementById("proposer").value = "";
   document.getElementById("submissionTime").value = "";
-  document.getElementById("startElectionBtn").classList.add('hidden');
+  //document.getElementById("startElectionBtn").classList.add('hidden');
   document.getElementById("resetElectionBtn").classList.remove('hidden');
   document.getElementById("resetElectionBtn").disabled = false;
 }
@@ -1405,7 +1422,7 @@ function disableForm() {
   document.getElementById("submitProposalBtn").disabled = true;
   document.getElementById("startElectionBtn").disabled = true;
   //document.getElementById("getDepositBtn").disabled = true;
-  document.getElementById("startElectionBtn").classList.add('hidden');
+  //document.getElementById("startElectionBtn").classList.add('hidden');
   document.getElementById("resetElectionBtn").classList.remove('hidden');
   document.getElementById("resetElectionBtn").disabled = false;
   emptyForm();
@@ -1491,6 +1508,7 @@ async function checkDeadlines(currentState) {
   // Find the relevant time...
   switch(currentState) {
     case "0":
+    case "4":
       return;
     case "1":
       totalMembers = await electionCommissioner.methods.totaleligible().call();
@@ -1537,12 +1555,15 @@ function showFooterPanel(proposerAddr, endSignupTime, startElectionExpiredTime) 
     if(currentTime.getTime() > endSignupTime* 1000 && currentTime.getTime() < startElectionExpiredTime * 1000) {
       if (currentState == "2") {
         document.getElementById("startElectionBtn").disabled = true;
-      } else {
+      } else if (currentState != "4"){
         document.getElementById("startElectionBtn").disabled = false;
         document.getElementById("startElectionBtn").classList.remove('hidden');
+        document.getElementById("resetElectionBtn").disabled = true;
+        document.getElementById("resetElectionBtn").classList.add('hidden');
+      } else {
+
       }
-    document.getElementById("resetElectionBtn").disabled = true;
-    document.getElementById("resetElectionBtn").classList.add('hidden');
+
   } else if (currentTime.getTime() > startElectionExpiredTime * 1000 && currentState != "2") {
       document.getElementById("proposalExpired").classList.remove('hidden');
       document.getElementById("startElectionBtn").disabled = true;
@@ -1598,8 +1619,9 @@ function electionStage() {
     populateForms(prop);
     showFooterPanel(prop.proposer, prop.endSignupTime, prop.startElectionExpiredTime);
   });
-  document.getElementById("proposalAddMemberSignatureForm").classList.remove('hidden');
-  document.getElementById("proposalAddMemberForm").classList.remove('hidden');
+  showElement(document.getElementById("proposalAddMemberSignatureForm"));
+  showElement(document.getElementById("proposalAddMemberForm"));
+  showElement(document.getElementById("electionInProgressLabel"));
 }
 
 function openWallet() {
@@ -1724,6 +1746,8 @@ window.addEventListener('load', async () => {
     <div class="panel-body hidden" id="footer">
       <p class="bg-success hidden" id="successLabel"><label>Proposed By:</label><span id="proposer"></span> <label>At:</label><span id="submissionTime"></span></p>
       <p class="bg-warning hidden" id="onlyForProposer">Election can start after <b id="electionTimeLabel"> </b> if number of interest exceeds the quorum</p>
+      <p class="bg-warning hidden" id="electionInProgressLabel">Election in progress</p>
+      <p class="bg-info hidden" id="electionResultLabel"></p>
       <p class="bg-danger hidden" id="proposalExpired">This proposal has expired</p>
       <span class="label label-primary" id="totalMembersLabel">Total members:<span class="badge" id ="totalMembersBadge"></span></span>
       <span class="label label-primary" id="totalInterestLabel">Total interest:<span class="badge" id ="totalInterestBadge"></span></span>

@@ -49,6 +49,12 @@ module.exports = {
       from: "0xA1693EC271CA1F7e28b96F0BD4552CB4b64827d0",
       gas: 8500000
      },
+     ropsten:  {
+     network_id: 3,
+     host: "localhost",
+     port:  8545,
+     gas:   2900000
+   }
 
     // Another network with more advanced options...
     // advanced: {
