@@ -731,6 +731,7 @@ contract AnonymousVoting is owned {
          }
 
          // Reset timers.
+         //commented on 15/3/2020
          finishSignupPhase = 0;
          endSignupPhase = 0;
          endCommitmentPhase = 0;

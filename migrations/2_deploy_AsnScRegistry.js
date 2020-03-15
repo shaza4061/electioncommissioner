@@ -3,8 +3,8 @@ const AsnScRegistry = artifacts.require("AsnScRegistry.sol");
 const _asn = [
 1	,
 2	,
-3
-// 4	,
+3 ,
+4
 // 5	,
 // 6	,
 // 7	,
@@ -45,8 +45,8 @@ const _asn = [
 const _ip = [
 web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")	,
 web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")	,
+web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32") ,
 web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")
-// web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")	,
 // web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")	,
 // web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")	,
 // web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")	,
@@ -87,8 +87,8 @@ web3.utils.asciiToHex("192.168.1.1/32,127.0.0.1/32")
 const _smartContractAddr = [
   "0x74a021de8bd500b26333a05e96761fe323ec57ba"	,
   "0x53075fbf8bd109021283d87daf643f6e8e39c0ed"	,
-  "0x0289af55758f2f5ba64f8e1cd29663e78f63f295"
-  // "0x8baa266dd1088504139f095e9ae29ccdd3f71d1d"	,
+  "0x0289af55758f2f5ba64f8e1cd29663e78f63f295" ,
+  "0x8baa266dd1088504139f095e9ae29ccdd3f71d1d"
   // "0x9c85d71c927f2e644996e50fc4c4c3b451d56855"	,
   // "0xe299537db02b058011165cda071e590512364185"	,
   // "0xd8533a3f615f486f934c26a91b0bca2cd18620e9"	,
@@ -129,8 +129,8 @@ const _smartContractAddr = [
 const _votingAddr = [
   "0x74a021de8bd500b26333a05e96761fe323ec57ba"	,
   "0x53075fbf8bd109021283d87daf643f6e8e39c0ed"	,
-  "0x0289af55758f2f5ba64f8e1cd29663e78f63f295"
-//   "0x8baa266dd1088504139f095e9ae29ccdd3f71d1d"	,
+  "0x0289af55758f2f5ba64f8e1cd29663e78f63f295" ,
+  "0x8baa266dd1088504139f095e9ae29ccdd3f71d1d"	,
 //   "0x9c85d71c927f2e644996e50fc4c4c3b451d56855"	,
 //   "0xe299537db02b058011165cda071e590512364185"	,
 //   "0xd8533a3f615f486f934c26a91b0bca2cd18620e9"	,
@@ -168,7 +168,7 @@ const _votingAddr = [
 // "0x3183e76ED9892787a50a5248Ec9a92cE19F5D6cE",
 //"0x1aef98C2E539DF08ed94DB42E4Ba89c3F7605e9a"
 ];
-const _size = 3;
+const _size = 4;
 
 
 // JavaScript export

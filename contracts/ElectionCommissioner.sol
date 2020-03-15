@@ -50,7 +50,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     endSignupPhaseDuration = _endSignupPhaseDuration;
     endCommitmentPhaseDuration = _endCommitmentPhaseDuration;
     endVotingPhaseDuration = _endVotingPhaseDuration;
-    endRefundPhase = _endRefundPhase;
+    endRefundPhaseDuration = _endRefundPhase;
     depositRequired = _depositRequired;
     quorumInPercentage = _quorumInPercentage;
   }
@@ -70,6 +70,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     setEligible(voters);
   }
 
+  event Debug(uint);
   function submitProposal(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, string _rawProposal, string _question) public isMember payable returns (bool){
     // Require Proposer to deposit ether
     require(msg.value == depositRequired,  "Deposit sent is not equal to deposit required");
@@ -97,19 +98,22 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     //uint ecEndRefundPhase = ecEndVotingPhase + endRefundPhase; //stack too deep. max number of variable reached
     rawProposal = _rawProposal;
 
+    emit Debug(ecEndVotingPhase);
+    emit Debug(endRefundPhase);
+    emit Debug(gap);
+
     require(ecFinishSignupPhase > 0 + gap, "ecFinishSignupPhase must be more than 0 + gap");
     require(addresses.length >= 3, "addresses must be more than 3");
     require(depositRequired >= 0, "depositrequired must not be 0");
-/**
-    if(_proposalType == ProposalType.ADD_MEMBER) {
-      proposalTypeStr = "Add member";
-    } else if (_proposalType == ProposalType.REMOVE_MEMBER) {
-      proposalTypeStr = "Remove member";
-    } else {
-      revert("Unrecognized proposal type");
+    require(ecEndSignupPhase-gap > ecFinishSignupPhase,"ecEndSignupPhase-gap < ecFinishSignupPhase");
+    require(ecEndCommitmentPhase-gap > ecEndSignupPhase,"ecEndCommitmentPhase-gap < ecEndSignupPhase");
+    require(ecEndVotingPhase-gap > ecEndCommitmentPhase, "ecEndVotingPhase-gap < ecEndCommitmentPhase");
+    //require(ecEndVotingPhase + endRefundPhase-gap > ecEndVotingPhase,"ecEndVotingPhase + endRefundPhase-gap < ecEndVotingPhase");
+    if(ecEndVotingPhase + endRefundPhaseDuration-gap < ecEndVotingPhase) {
+      return false;
     }
-    **/
-    return beginSignUp(_question, true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndVotingPhase + endRefundPhase, depositRequired);
+
+    return beginSignUp(_question, true, ecFinishSignupPhase, ecEndSignupPhase, ecEndCommitmentPhase, ecEndVotingPhase, ecEndVotingPhase + endRefundPhaseDuration, depositRequired);
   }
 
   function getProposal() view public returns(ProposalType _proposalType, uint _asn, bytes32[] _ip, address _scAddress, address _votingAddress, string _proposalHash, uint _submissionTime, address _proposer, string _rawProposal) {
@@ -117,7 +121,7 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
   }
 
   function startElection() public returns(bool){
-    uint totalInterestInPercentage = totalregistered/totaleligible*100;
+    uint totalInterestInPercentage = (totalregistered*100)/totaleligible;
     bool success = false;
     if (totalInterestInPercentage > quorumInPercentage) {
       bool registrationPhaseFinished = finishRegistrationPhase();
@@ -125,6 +129,11 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
       success = depositIsReturned && registrationPhaseFinished;
     }
     return success;
+  }
+
+  function getTotalInterestInPercentage() public returns(uint) {
+    uint totalInterestInPercentage = (totalregistered*100)/totaleligible;
+    return totalInterestInPercentage;
   }
 
   function submitVote(uint[4] params, uint[2] y, uint[2] a1, uint[2] b1, uint[2] a2, uint[2] b2) inState(State.VOTE) returns (bool) {
@@ -151,21 +160,11 @@ contract ElectionCommissioner is AnonymousVoting(1,0xFF2C4D4890d6Be87cA259a1763B
     if(success) {
       delete currentProposal;
       delete rawProposal;
-      state = State.SETUP;
       return true;
     }
     return false;
   }
-/**
-  function getDeposit() public isProposer inState(State.FINISHED) {
-    if (msg.sender.send(currentProposal.deposit)) {
-      //refunds successful
-       delete currentProposal;
-    } else {
-      revert("Refund not successful");
-    }
-  }
-**/
+
   function executeProposal() internal returns(bool) {
     if(currentProposal.proposalType == ProposalType.ADD_MEMBER) {
       registry.addMember(currentProposal.asn, currentProposal.ip, currentProposal.scAddress, currentProposal.votingAddress);

@@ -288,6 +288,7 @@
 
 
     var updateList = async function() {
+      $("#registry #members-list").empty();
       var membersAsn = getAsnList();
       membersAsn.then(list =>{
         for (let i=0;i<list.length; i++) {
@@ -312,18 +313,16 @@
             $("#registry #members-list").append(row);
           })
         }
-
-
       })
     }
 
-    //setInterval("updateList()", 2000);
+    setInterval("updateList()", 5000);
     //updateList()
 
     $(document).ready(function () {
   //your code here
   //getRegisteredAsn().then(getManagedIpByAsn).then(members => console.log(members[123]));
-  updateList();
+  //updateList();
 });
     </script>
     <h1 align="center">BloSS Registrys</h1>
